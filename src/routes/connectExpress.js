@@ -79,7 +79,7 @@ router.post("/onboard-link", async (req, res) => {
       account: accountId,
       type: "account_onboarding",
       refresh_url: `${process.env.APP_BASE_URL}/onboard/refresh`,
-      return_url: `${process.env.APP_BASE_URL}/onboard/return`,
+      return_url: `${process.env.APP_BASE_URL}/dashboard`,
     });
 
     res.json({ url: link.url });
