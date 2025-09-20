@@ -78,7 +78,7 @@ router.post("/onboard-link", async (req, res) => {
     const link = await stripe.accountLinks.create({
       account: accountId,
       type: "account_onboarding",
-      refresh_url: `${process.env.APP_BASE_URL}/onboard/refresh`,
+      refresh_url: `${process.env.APP_BASE_URL}/dashboard`,
       return_url: `${process.env.APP_BASE_URL}/dashboard`,
     });
 
