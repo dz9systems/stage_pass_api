@@ -1,0 +1,16 @@
+{
+  "theaters": {
+    "test_theater_1": {
+      "id": "test_theater_1",
+      "name": "Demo Theater",
+      "stripeAccountId": null,
+      "accountType": null
+    },
+    "test_theater_2": {
+      "id": "test_theater_2",
+      "name": "Demo Theater 2",
+      "stripeAccountId": "acct_1S9GkWII7T9T1JHt",
+      "accountType": "express"
+    }
+  }
+}

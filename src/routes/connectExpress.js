@@ -1,0 +1,186 @@
+const express = require("express");
+const router = express.Router();
+const Stripe = require("stripe");
+const { upsertTheater, getTheaterById, getAllTheaters } = require("../db");
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2024-06-20",
+});
+
+// Delete a connected account (accepts accountId or theaterId)
+router.delete("/account", async (req, res) => {
+  try {
+    const { accountId } = req.body || {};
+    const theaterId = req.body?.theaterId || req.query?.theaterId;
+
+    let targetAccountId = accountId;
+    if (!targetAccountId) {
+      if (!theaterId) return res.status(400).json({ error: "Provide accountId or theaterId" });
+      const theater = await getTheaterById(theaterId);
+      if (!theater?.stripeAccountId)
+        return res.status(404).json({ error: "Theater or Stripe account not found" });
+      targetAccountId = theater.stripeAccountId;
+    }
+
+    const deleted = await stripe.accounts.del(targetAccountId);
+
+    // Best effort: clear local mapping when theaterId provided
+    if (theaterId) {
+      await upsertTheater({
+        id: theaterId,
+        name: `Theater ${theaterId}`,
+        stripeAccountId: null,
+        accountType: null,
+      });
+    }
+
+    res.json(deleted);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Create Express connected account
+router.post("/create-account", async (req, res) => {
+  try {
+    const { theaterId, name } = req.body;
+    if (!theaterId) return res.status(400).json({ error: "Missing theaterId" });
+
+    const account = await stripe.accounts.create({
+      type: "express",
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+      business_profile: name ? { name } : undefined,
+    });
+
+    await upsertTheater({
+      id: theaterId,
+      name: name || `Theater ${theaterId}`,
+      stripeAccountId: account.id,
+      accountType: "express",
+    });
+
+    res.json({ accountId: account.id });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Get single-use onboarding link
+router.post("/onboard-link", async (req, res) => {
+  try {
+    const { accountId } = req.body;
+    console.log('accountId::', accountId);
+    const link = await stripe.accountLinks.create({
+      account: accountId,
+      type: "account_onboarding",
+      refresh_url: `${process.env.APP_BASE_URL}/onboard/refresh`,
+      return_url: `${process.env.APP_BASE_URL}/onboard/return`,
+    });
+
+    res.json({ url: link.url });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Check onboarding status
+router.get("/status", async (req, res) => {
+  try {
+    const { theaterId } = req.query;
+    if (!theaterId) return res.status(400).json({ error: "Missing theaterId" });
+
+    const theater = await getTheaterById(theaterId);
+    if (!theater?.stripeAccountId)
+      return res.status(404).json({ error: "Theater not found" });
+
+    const acct = await stripe.accounts.retrieve(theater.stripeAccountId);
+    res.json({
+      ready: acct.charges_enabled && acct.details_submitted,
+      charges_enabled: acct.charges_enabled,
+      details_submitted: acct.details_submitted,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Express Dashboard login link
+router.post("/login-link", async (req, res) => {
+  try {
+    const { theaterId } = req.body;
+    if (!theaterId) return res.status(400).json({ error: "Missing theaterId" });
+
+    const theater = await getTheaterById(theaterId);
+    if (!theater?.stripeAccountId)
+      return res.status(404).json({ error: "Theater not found" });
+
+    const login = await stripe.accounts.createLoginLink(theater.stripeAccountId);
+    res.json({ url: login.url });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Delete ALL Express accounts
+router.delete("/accounts/all", async (req, res) => {
+  try {
+    // Get all connected accounts from Stripe
+    const accounts = await stripe.accounts.list({
+      limit: 100 // Stripe's max limit
+    });
+
+
+    // Filter for Express accounts only
+    const expressAccounts = accounts.data.filter(account => account.type === 'express');
+
+    if (expressAccounts.length === 0) {
+      return res.json({
+        message: "No Express accounts found to delete",
+        deletedCount: 0,
+        errors: []
+      });
+    }
+
+    const results = {
+      deletedCount: 0,
+      errors: [],
+      deletedAccounts: []
+    };
+
+    // Delete each Express account
+    for (const account of expressAccounts) {
+      try {
+        await stripe.accounts.del(account.id);
+
+        results.deletedCount++;
+        results.deletedAccounts.push({
+          accountId: account.id,
+        });
+      } catch (error) {
+        console.error(`Failed to delete account ${account.id}:`, error);
+        results.errors.push({
+          accountId: account.id,
+          error: error.message
+        });
+      }
+    }
+
+    res.json({
+      message: `Successfully deleted ${results.deletedCount} Express accounts`,
+      ...results
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+module.exports = router;

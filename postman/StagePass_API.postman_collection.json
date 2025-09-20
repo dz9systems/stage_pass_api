@@ -1,0 +1,247 @@
+{
+  "info": {
+    "_postman_id": "8f8e3b31-8a1e-4f0e-9f8e-111111111111",
+    "name": "StagePass API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection to test StagePass API endpoints for Stripe Connect (Express & Standard), Payments, and Webhooks."
+  },
+  "item": [
+    {
+      "name": "Healthcheck",
+      "item": [
+        {
+          "name": "GET /",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base_url}}/",
+              "host": [
+                "{{api_base_url}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Connect - Express",
+      "item": [
+        {
+          "name": "POST /connect/express/create-account",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"theaterId\": \"{{theater_id}}\",\n  \"name\": \"Demo Theater\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/connect/express/create-account",
+              "host": ["{{api_base_url}}"],
+              "path": ["connect", "express", "create-account"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /connect/express/onboard-link",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"theaterId\": \"{{theater_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/connect/express/onboard-link",
+              "host": ["{{api_base_url}}"],
+              "path": ["connect", "express", "onboard-link"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /connect/express/status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base_url}}/connect/express/status?theaterId={{theater_id}}",
+              "host": ["{{api_base_url}}"],
+              "path": ["connect", "express", "status"],
+              "query": [
+                { "key": "theaterId", "value": "{{theater_id}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /connect/express/login-link",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"theaterId\": \"{{theater_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/connect/express/login-link",
+              "host": ["{{api_base_url}}"],
+              "path": ["connect", "express", "login-link"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /connect/express/account (by theaterId)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"theaterId\": \"{{theater_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/connect/express/account",
+              "host": ["{{api_base_url}}"],
+              "path": ["connect", "express", "account"]
+            },
+            "description": "Deletes the connected Stripe account for the provided theaterId and clears local mapping."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /connect/express/account (by accountId)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"acct_123\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/connect/express/account",
+              "host": ["{{api_base_url}}"],
+              "path": ["connect", "express", "account"]
+            },
+            "description": "Deletes the specified Stripe account by accountId (does not touch local mapping)."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /connect/express/accounts/all",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{api_base_url}}/connect/express/accounts/all",
+              "host": ["{{api_base_url}}"],
+              "path": ["connect", "express", "accounts", "all"]
+            },
+            "description": "Deletes ALL Stripe Express accounts in the database. This will delete each Express account from Stripe and clear the local database mapping. Returns detailed results including any errors encountered."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Connect - Standard (OAuth)",
+      "item": [
+        {
+          "name": "GET /connect/standard/oauth/start",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base_url}}/connect/standard/oauth/start?theaterId={{theater_id}}",
+              "host": ["{{api_base_url}}"],
+              "path": ["connect", "standard", "oauth", "start"],
+              "query": [
+                { "key": "theaterId", "value": "{{theater_id}}" }
+              ]
+            },
+            "description": "This will redirect to Stripe. Open in browser from Postman or copy URL."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "POST /payments/create-intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"theaterId\": \"{{theater_id}}\",\n  \"amountCents\": 1500,\n  \"currency\": \"usd\",\n  \"orderId\": \"order_123\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/payments/create-intent",
+              "host": ["{{api_base_url}}"],
+              "path": ["payments", "create-intent"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "POST /webhooks/stripe (requires Stripe-Signature)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Stripe-Signature", "value": "REPLACE_WITH_REAL_SIGNATURE" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ }"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/webhooks/stripe",
+              "host": ["{{api_base_url}}"],
+              "path": ["webhooks", "stripe"]
+            },
+            "description": "Typically test via Stripe CLI: `stripe listen --forward-to localhost:4242/webhooks/stripe`"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "api_base_url", "value": "http://localhost:4242" },
+    { "key": "app_base_url", "value": "http://localhost:3000" },
+    { "key": "theater_id", "value": "test_theater_1" }
+  ]
+}

@@ -1,0 +1,84 @@
+# --- Dependencies ---
+node_modules/
+**/node_modules/
+
+# --- Builds / Artifacts ---
+dist/
+build/
+out/
+lib/
+coverage/
+.nyc_output/
+
+# Framework outputs
+.next/
+.nuxt/
+.svelte-kit/
+.vercel/
+.netlify/
+
+# Vite / tooling caches
+.vite/
+**/.vite/
+.turbo/
+.nx/
+
+# TypeScript
+*.tsbuildinfo
+
+# --- Env & secrets ---
+.env
+.env.local
+.env.*.local
+# Keep an example file for onboarding:
+!.env.example
+
+# --- Logs & PIDs ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# --- Caches ---
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.node_repl_history
+.npm/
+.pnpm-store/
+.bun/
+
+# --- Editors / OS junk ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Images/Maps/Keys (optional, keep if you generate these) ---
+*.map
+*.pem
+*.key
+*.crt
+
+# --- Serverless / Cloud (optional; uncomment if you use them) ---
+# .serverless/
+# .terraform/
+# .firebase/
+# functions/lib/
+# functions/node_modules/
+
+# --- Monorepo extras (optional) ---
+# packages/*/dist
+# apps/*/dist
