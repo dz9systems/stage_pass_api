@@ -7,15 +7,16 @@ const bodyParser = require("body-parser"); // use raw for webhooks, json for eve
 const connectExpressRouter = require("./routes/connectExpress.js");
 const connectStandardRouter = require("./routes/connectStandard");
 const paymentsRouter = require("./routes/payments");
-const webhooksRouter = require("./routes/webhooks"); // expects raw body for signature verification
+const webhooksRouter = require("./routes/webhooks"); // expects raw-body for signature verification
+const stripeDataRouter = require("./routes/dashboard");
 
 const app = express();
 const port = process.env.PORT || 4242;
 
 // CORS
 const corsOptions = {
-  origin: ["http://localhost:5173","http://127.0.0.1:5173"],  // no '*'
-  credentials: true,                   // <-- sends Access-Control-Allow-Credentials: true
+  origin: ["http://localhost:5173","http://127.0.0.1:5173","https://stage-pass-b1d9b.web.app"],
+  credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"],
 };
@@ -31,6 +32,7 @@ app.use(bodyParser.json());
 app.use("/connect/express", connectExpressRouter);
 app.use("/connect/standard", connectStandardRouter);
 app.use("/payments", paymentsRouter);
+app.use("/stripe-data", stripeDataRouter);
 
 // Start server
 app.listen(port, () => {

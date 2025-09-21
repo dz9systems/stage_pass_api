@@ -3,7 +3,7 @@
     "_postman_id": "8f8e3b31-8a1e-4f0e-9f8e-111111111111",
     "name": "StagePass API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Collection to test StagePass API endpoints for Stripe Connect (Express & Standard), Payments, and Webhooks."
+    "description": "Collection to test StagePass API endpoints for Stripe Connect (Express & Standard), Payments, Stripe Data, and Webhooks."
   },
   "item": [
     {
@@ -32,137 +32,152 @@
       "name": "Connect - Express",
       "item": [
         {
-          "name": "POST /connect/express/create-account",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"theaterId\": \"{{theater_id}}\",\n  \"name\": \"Demo Theater\"\n}"
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE NEW STRIPE ACCOUNT",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"theaterId\": \"{{theater_id}}\",\n  \"name\": \"Demo Theater\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/create-account",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "create-account"]
+                }
+              },
+              "response": []
             },
-            "url": {
-              "raw": "{{api_base_url}}/connect/express/create-account",
-              "host": ["{{api_base_url}}"],
-              "path": ["connect", "express", "create-account"]
+            {
+              "name": "CREATE ONBOARDING LINK",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"{{account_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/onboard-link",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "onboard-link"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "CREATE LOGIN LINK",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"theaterId\": \"{{theater_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/login-link",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "login-link"]
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
+          ]
         },
         {
-          "name": "POST /connect/express/onboard-link",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"theaterId\": \"{{theater_id}}\"\n}"
-            },
-            "url": {
-              "raw": "{{api_base_url}}/connect/express/onboard-link",
-              "host": ["{{api_base_url}}"],
-              "path": ["connect", "express", "onboard-link"]
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET ACCOUNT STATUS",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/status?theaterId={{theater_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "status"],
+                  "query": [
+                    { "key": "theaterId", "value": "{{theater_id}}" }
+                  ]
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
+          ]
         },
         {
-          "name": "GET /connect/express/status",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{api_base_url}}/connect/express/status?theaterId={{theater_id}}",
-              "host": ["{{api_base_url}}"],
-              "path": ["connect", "express", "status"],
-              "query": [
-                { "key": "theaterId", "value": "{{theater_id}}" }
-              ]
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE ACCOUNT BY THEATER ID",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"theaterId\": \"{{theater_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/account",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "account"]
+                },
+                "description": "Deletes the connected Stripe account for the provided theaterId and clears local mapping."
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE ACCOUNT BY ACCOUNT ID",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"acct_123\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/account",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "account"]
+                },
+                "description": "Deletes the specified Stripe account by accountId (does not touch local mapping)."
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE ALL EXPRESS ACCOUNTS",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/accounts/all",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "accounts", "all"]
+                },
+                "description": "Deletes ALL Stripe Express accounts in the database. This will delete each Express account from Stripe and clear the local database mapping. Returns detailed results including any errors encountered."
+              },
+              "response": []
             }
-          },
-          "response": []
-        },
-        {
-          "name": "POST /connect/express/login-link",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"theaterId\": \"{{theater_id}}\"\n}"
-            },
-            "url": {
-              "raw": "{{api_base_url}}/connect/express/login-link",
-              "host": ["{{api_base_url}}"],
-              "path": ["connect", "express", "login-link"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "DELETE /connect/express/account (by theaterId)",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"theaterId\": \"{{theater_id}}\"\n}"
-            },
-            "url": {
-              "raw": "{{api_base_url}}/connect/express/account",
-              "host": ["{{api_base_url}}"],
-              "path": ["connect", "express", "account"]
-            },
-            "description": "Deletes the connected Stripe account for the provided theaterId and clears local mapping."
-          },
-          "response": []
-        },
-        {
-          "name": "DELETE /connect/express/account (by accountId)",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"accountId\": \"acct_123\"\n}"
-            },
-            "url": {
-              "raw": "{{api_base_url}}/connect/express/account",
-              "host": ["{{api_base_url}}"],
-              "path": ["connect", "express", "account"]
-            },
-            "description": "Deletes the specified Stripe account by accountId (does not touch local mapping)."
-          },
-          "response": []
-        },
-        {
-          "name": "DELETE /connect/express/accounts/all",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": ""
-            },
-            "url": {
-              "raw": "{{api_base_url}}/connect/express/accounts/all",
-              "host": ["{{api_base_url}}"],
-              "path": ["connect", "express", "accounts", "all"]
-            },
-            "description": "Deletes ALL Stripe Express accounts in the database. This will delete each Express account from Stripe and clear the local database mapping. Returns detailed results including any errors encountered."
-          },
-          "response": []
+          ]
         }
       ]
     },
@@ -170,21 +185,26 @@
       "name": "Connect - Standard (OAuth)",
       "item": [
         {
-          "name": "GET /connect/standard/oauth/start",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{api_base_url}}/connect/standard/oauth/start?theaterId={{theater_id}}",
-              "host": ["{{api_base_url}}"],
-              "path": ["connect", "standard", "oauth", "start"],
-              "query": [
-                { "key": "theaterId", "value": "{{theater_id}}" }
-              ]
-            },
-            "description": "This will redirect to Stripe. Open in browser from Postman or copy URL."
-          },
-          "response": []
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "START OAUTH CONNECTION",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/connect/standard/oauth/start?theaterId={{theater_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "standard", "oauth", "start"],
+                  "query": [
+                    { "key": "theaterId", "value": "{{theater_id}}" }
+                  ]
+                },
+                "description": "This will redirect to Stripe. Open in browser from Postman or copy URL."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
@@ -192,23 +212,438 @@
       "name": "Payments",
       "item": [
         {
-          "name": "POST /payments/create-intent",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"theaterId\": \"{{theater_id}}\",\n  \"amountCents\": 1500,\n  \"currency\": \"usd\",\n  \"orderId\": \"order_123\"\n}"
-            },
-            "url": {
-              "raw": "{{api_base_url}}/payments/create-intent",
-              "host": ["{{api_base_url}}"],
-              "path": ["payments", "create-intent"]
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE PAYMENT INTENT",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"theaterId\": \"{{theater_id}}\",\n  \"amountCents\": 1500,\n  \"currency\": \"usd\",\n  \"orderId\": \"order_123\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/payments/create-intent",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["payments", "create-intent"]
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Stripe Data",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE NEW PRODUCT",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Concert Ticket\",\n  \"description\": \"Premium concert ticket with VIP access\",\n  \"images\": [\"https://example.com/ticket.jpg\"],\n  \"metadata\": {\n    \"category\": \"entertainment\",\n    \"venue\": \"Madison Square Garden\"\n  },\n  \"type\": \"good\",\n  \"url\": \"https://example.com/tickets\",\n  \"default_price_data\": {\n    \"currency\": \"usd\",\n    \"unit_amount\": 5000,\n    \"tax_behavior\": \"exclusive\",\n    \"metadata\": {\n      \"tier\": \"standard\"\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/products",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "products"]
+                },
+                "description": "Create a new product in the main Stripe account with name, description, images, and metadata."
+              },
+              "response": []
+            },
+            {
+              "name": "CREATE PRODUCT PRICE",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"unit_amount\": 5000,\n  \"currency\": \"usd\",\n  \"recurring\": null,\n  \"metadata\": {\n    \"tier\": \"standard\"\n  },\n  \"active\": true,\n  \"nickname\": \"Standard Ticket\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/products/{{product_id}}/prices",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "products", "{{product_id}}", "prices"]
+                },
+                "description": "Create a price for a specific product in the main Stripe account."
+              },
+              "response": []
+            },
+            {
+              "name": "CREATE CONNECTED ACCOUNT PRODUCT",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Theater Show Ticket\",\n  \"description\": \"Premium theater show ticket\",\n  \"images\": [\"https://example.com/show.jpg\"],\n  \"metadata\": {\n    \"category\": \"theater\",\n    \"show\": \"Hamilton\"\n  },\n  \"type\": \"good\",\n  \"default_price_data\": {\n    \"currency\": \"usd\",\n    \"unit_amount\": 7500,\n    \"tax_behavior\": \"exclusive\",\n    \"metadata\": {\n      \"tier\": \"premium\"\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/products",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "products"]
+                },
+                "description": "Create a new product in a specific connected Stripe account."
+              },
+              "response": []
+            },
+            {
+              "name": "CREATE CONNECTED ACCOUNT PRICE",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"unit_amount\": 7500,\n  \"currency\": \"usd\",\n  \"recurring\": null,\n  \"metadata\": {\n    \"tier\": \"premium\"\n  },\n  \"active\": true,\n  \"nickname\": \"Premium Ticket\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/products/{{product_id}}/prices",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "products", "{{product_id}}", "prices"]
+                },
+                "description": "Create a price for a specific product in a connected Stripe account."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET ALL CONNECTED ACCOUNTS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/accounts",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "accounts"]
+                },
+                "description": "Get comprehensive Stripe data for all connected accounts including summary statistics, account details, balances, and recent transactions."
+              },
+              "response": []
+            },
+            {
+              "name": "GET ACCOUNT BY THEATER ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/accounts/{{theater_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "accounts", "{{theater_id}}"]
+                },
+                "description": "Get detailed information for a specific theater's connected account including balance, transactions, and account status."
+              },
+              "response": []
+            },
+            {
+              "name": "GET ALL PRODUCTS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/products?limit=100&active=true",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "products"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "active", "value": "true" }
+                  ]
+                },
+                "description": "Get all products from Stripe including pricing information, metadata, and images."
+              },
+              "response": []
+            },
+            {
+              "name": "GET ALL PAYMENTS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/payments?limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "payments"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "created_after", "value": "", "disabled": true },
+                    { "key": "created_before", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Get all payments/charges from Stripe including refunds, payment methods, and summary statistics."
+              },
+              "response": []
+            },
+            {
+              "name": "GET ALL CUSTOMERS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/customers?limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "customers"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "email", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Get all customers from Stripe including contact information, payment methods, and subscription status."
+              },
+              "response": []
+            },
+            {
+              "name": "GET ALL SUBSCRIPTIONS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/subscriptions?limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "subscriptions"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "status", "value": "", "disabled": true },
+                    { "key": "customer", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Get all subscriptions from Stripe including pricing, billing cycles, and subscription status."
+              },
+              "response": []
+            },
+            {
+              "name": "GET COMPREHENSIVE OVERVIEW",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/overview",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "overview"]
+                },
+                "description": "Get comprehensive Stripe data overview including all data (accounts, products, payments, customers, subscriptions) with summary statistics."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "UPDATE",
+          "item": [
+            {
+              "name": "UPDATE PRODUCT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Concert Ticket\",\n  \"description\": \"Updated description for premium concert ticket\",\n  \"active\": true,\n  \"metadata\": {\n    \"category\": \"entertainment\",\n    \"venue\": \"Updated Venue\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/products/{{product_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "products", "{{product_id}}"]
+                },
+                "description": "Update an existing product in the main Stripe account."
+              },
+              "response": []
+            },
+            {
+              "name": "UPDATE CONNECTED ACCOUNT PRODUCT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Theater Show Ticket\",\n  \"description\": \"Updated description for theater show ticket\",\n  \"active\": true,\n  \"metadata\": {\n    \"category\": \"theater\",\n    \"show\": \"Updated Show\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/products/{{product_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "products", "{{product_id}}"]
+                },
+                "description": "Update an existing product in a connected Stripe account."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE PRODUCT",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/products/{{product_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "products", "{{product_id}}"]
+                },
+                "description": "Delete a product from the main Stripe account."
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE CONNECTED ACCOUNT PRODUCT",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/products/{{product_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "products", "{{product_id}}"]
+                },
+                "description": "Delete a product from a connected Stripe account."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "CONNECTED ACCOUNTS",
+          "item": [
+            {
+              "name": "GET CONNECTED ACCOUNT PRODUCTS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/products?limit=100&active=true",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "products"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "active", "value": "true" }
+                  ]
+                },
+                "description": "Get all products from a specific connected Stripe account including pricing information, metadata, and images."
+              },
+              "response": []
+            },
+            {
+              "name": "GET CONNECTED ACCOUNT PAYMENTS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/payments?limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "payments"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "created_after", "value": "", "disabled": true },
+                    { "key": "created_before", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Get all payments/charges from a specific connected Stripe account including refunds, payment methods, and summary statistics."
+              },
+              "response": []
+            },
+            {
+              "name": "GET CONNECTED ACCOUNT CUSTOMERS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/customers?limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "customers"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "email", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Get all customers from a specific connected Stripe account including contact information, payment methods, and subscription status."
+              },
+              "response": []
+            },
+            {
+              "name": "GET CONNECTED ACCOUNT SUBSCRIPTIONS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/subscriptions?limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "subscriptions"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "status", "value": "", "disabled": true },
+                    { "key": "customer", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Get all subscriptions from a specific connected Stripe account including pricing, billing cycles, and subscription status."
+              },
+              "response": []
+            },
+            {
+              "name": "GET CONNECTED ACCOUNT OVERVIEW",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/overview",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "overview"]
+                },
+                "description": "Get comprehensive overview of all Stripe data from a specific connected account including account details, products, payments, customers, and subscriptions."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
@@ -216,25 +651,30 @@
       "name": "Webhooks",
       "item": [
         {
-          "name": "POST /webhooks/stripe (requires Stripe-Signature)",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Stripe-Signature", "value": "REPLACE_WITH_REAL_SIGNATURE" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{ }"
-            },
-            "url": {
-              "raw": "{{api_base_url}}/webhooks/stripe",
-              "host": ["{{api_base_url}}"],
-              "path": ["webhooks", "stripe"]
-            },
-            "description": "Typically test via Stripe CLI: `stripe listen --forward-to localhost:4242/webhooks/stripe`"
-          },
-          "response": []
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "RECEIVE STRIPE WEBHOOK",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Stripe-Signature", "value": "REPLACE_WITH_REAL_SIGNATURE" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ }"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/webhooks/stripe",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["webhooks", "stripe"]
+                },
+                "description": "Typically test via Stripe CLI: `stripe listen --forward-to localhost:4242/webhooks/stripe`"
+              },
+              "response": []
+            }
+          ]
         }
       ]
     }
@@ -242,6 +682,8 @@
   "variable": [
     { "key": "api_base_url", "value": "http://localhost:4242" },
     { "key": "app_base_url", "value": "http://localhost:3000" },
-    { "key": "theater_id", "value": "test_theater_1" }
+    { "key": "theater_id", "value": "test_theater_1" },
+    { "key": "account_id", "value": "acct_1S8GzjEnRw19N81P" },
+    { "key": "product_id", "value": "prod_1234567890" }
   ]
 }
