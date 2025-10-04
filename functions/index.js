@@ -24,23 +24,32 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
+// Import route modules
+const usersRouter = require('./routes/users');
+const productionsRouter = require('./routes/productions');
+const performancesRouter = require('./routes/performances');
+const venuesRouter = require('./routes/venues');
+const seatmapsRouter = require('./routes/seatmaps');
+const ordersRouter = require('./routes/orders');
+const ticketsRouter = require('./routes/tickets');
+
 // Health check endpoint
 app.get('/', (req, res) => {
   res.json({ 
     message: 'Stage Pass API - Firebase Functions',
     status: 'healthy',
-    timestamp: new Date().toISOString(),
-    note: 'This is a simplified Firebase Functions deployment. For full API functionality, use the main server.'
-  });
-});
-
-// Basic API endpoints for testing
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'healthy',
     timestamp: new Date().toISOString()
   });
 });
+
+// CRUD API routes
+app.use('/api/users', usersRouter);
+app.use('/api/productions', productionsRouter);
+app.use('/api/productions', performancesRouter);
+app.use('/api/venues', venuesRouter);
+app.use('/api/venues', seatmapsRouter);
+app.use('/api/orders', ordersRouter);
+app.use('/api/orders', ticketsRouter);
 
 // Export the Express app as a Firebase Function
 exports.api = functions.https.onRequest(app);
