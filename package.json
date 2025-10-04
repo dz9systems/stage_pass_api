@@ -5,24 +5,12 @@
   "scripts": {
     "start": "nodemon src/index.js",
     "dev": "nodemon src/index.js",
-    "build": "echo 'No build step required for Node.js'",
     "setup-firebase": "node setup-firebase.js",
     "test-firebase": "node test-firebase.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "test:coverage": "echo \"No coverage tests configured\"",
-    "lint": "eslint src/ --ext .js",
-    "lint:fix": "eslint src/ --ext .js --fix",
-    "format": "prettier --write src/",
-    "format:check": "prettier --check src/",
     "firebase:emulators": "firebase emulators:start",
     "firebase:deploy": "firebase deploy --only functions",
     "firebase:deploy-rules": "firebase deploy --only firestore:rules,firestore:indexes",
-    "firebase:deploy-all": "firebase deploy",
-    "firebase:backup": "firebase firestore:export gs://stage-pass-b1d9b-backups/backup-$(date +%Y%m%d-%H%M%S)",
-    "security:audit": "npm audit --audit-level moderate",
-    "security:fix": "npm audit fix",
-    "deps:check": "npm outdated",
-    "deps:update": "npm update"
+    "firebase:deploy-all": "firebase deploy"
   },
   "keywords": [],
   "author": "",
@@ -38,10 +26,6 @@
     "stripe": "^18.5.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10",
-    "eslint": "^8.57.0",
-    "prettier": "^3.2.5",
-    "jest": "^29.7.0",
-    "supertest": "^6.3.4"
+    "nodemon": "^3.1.10"
   }
 }
