@@ -10,6 +10,15 @@ const paymentsRouter = require("./routes/payments");
 const webhooksRouter = require("./routes/webhooks"); // expects raw-body for signature verification
 const stripeDataRouter = require("./routes/dashboard");
 
+// New CRUD route modules
+const usersRouter = require("./routes/users");
+const productionsRouter = require("./routes/productions");
+const performancesRouter = require("./routes/performances");
+const venuesRouter = require("./routes/venues");
+const seatmapsRouter = require("./routes/seatmaps");
+const ordersRouter = require("./routes/orders");
+const ticketsRouter = require("./routes/tickets");
+
 const app = express();
 const port = process.env.PORT || 4242;
 
@@ -33,6 +42,15 @@ app.use("/connect/express", connectExpressRouter);
 app.use("/connect/standard", connectStandardRouter);
 app.use("/payments", paymentsRouter);
 app.use("/stripe-data", stripeDataRouter);
+
+// CRUD API routers
+app.use("/api/users", usersRouter);
+app.use("/api/productions", productionsRouter);
+app.use("/api/productions", performancesRouter); // performances are subcollection of productions
+app.use("/api/venues", venuesRouter);
+app.use("/api/venues", seatmapsRouter); // seatmaps are subcollection of venues
+app.use("/api/orders", ordersRouter);
+app.use("/api/orders", ticketsRouter); // tickets are subcollection of orders
 
 // Start server
 app.listen(port, () => {

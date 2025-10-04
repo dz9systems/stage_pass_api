@@ -12,5 +12,32 @@
       "stripeAccountId": "acct_1S9HAbIUf1pGCJLF",
       "accountType": "express"
     }
-  }
+  },
+  "users": {},
+  "productions": {
+    "mgcn7gr5700gso1xaab": {
+      "id": "mgcn7gr5700gso1xaab",
+      "title": "Hamilton",
+      "description": "The revolutionary musical about Alexander Hamilton",
+      "shortDescription": "Revolutionary musical about Alexander Hamilton",
+      "imageURL": "https://example.com/hamilton.jpg",
+      "sellerId": "WSBuy0f9CChSK254B0036OpVmEn1",
+      "venue": {
+        "name": "Richard Rodgers Theatre",
+        "address": "226 W 46th St, New York, NY 10036"
+      },
+      "duration": 165,
+      "categories": [
+        "musical",
+        "drama",
+        "historical"
+      ],
+      "status": "active",
+      "createdAt": "2025-10-04T19:05:01.073Z",
+      "updatedAt": "2025-10-04T19:05:01.073Z",
+      "performances": {}
+    }
+  },
+  "venues": {},
+  "orders": {}
 }

@@ -1,0 +1,1701 @@
+{
+  "info": {
+    "_postman_id": "8f8e3b31-8a1e-4f0e-9f8e-111111111111",
+    "name": "StagePass API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection to test StagePass API endpoints for Stripe Connect (Express & Standard), Payments, Stripe Data, and Webhooks."
+  },
+  "item": [
+    {
+      "name": "Healthcheck",
+      "item": [
+        {
+          "name": "GET /",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_base_url}}/",
+              "host": [
+                "{{api_base_url}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Connect - Express",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE NEW STRIPE ACCOUNT",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"theaterId\": \"{{theater_id}}\",\n  \"name\": \"Demo Theater\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/create-account",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "create-account"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "CREATE ONBOARDING LINK",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"{{account_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/onboard-link",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "onboard-link"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "CREATE LOGIN LINK",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"theaterId\": \"{{theater_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/login-link",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "login-link"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET ACCOUNT STATUS",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/status?theaterId={{theater_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "status"],
+                  "query": [
+                    { "key": "theaterId", "value": "{{theater_id}}" }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE ACCOUNT BY THEATER ID",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"theaterId\": \"{{theater_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/account",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "account"]
+                },
+                "description": "Deletes the connected Stripe account for the provided theaterId and clears local mapping."
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE ACCOUNT BY ACCOUNT ID",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"acct_123\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/account",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "account"]
+                },
+                "description": "Deletes the specified Stripe account by accountId (does not touch local mapping)."
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE ALL EXPRESS ACCOUNTS",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/connect/express/accounts/all",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "express", "accounts", "all"]
+                },
+                "description": "Deletes ALL Stripe Express accounts in the database. This will delete each Express account from Stripe and clear the local database mapping. Returns detailed results including any errors encountered."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Connect - Standard (OAuth)",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "START OAUTH CONNECTION",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/connect/standard/oauth/start?theaterId={{theater_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["connect", "standard", "oauth", "start"],
+                  "query": [
+                    { "key": "theaterId", "value": "{{theater_id}}" }
+                  ]
+                },
+                "description": "This will redirect to Stripe. Open in browser from Postman or copy URL."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE PAYMENT INTENT",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"theaterId\": \"{{theater_id}}\",\n  \"amountCents\": 1500,\n  \"currency\": \"usd\",\n  \"orderId\": \"order_123\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/payments/create-intent",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["payments", "create-intent"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Stripe Data",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE NEW PRODUCT",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Concert Ticket\",\n  \"description\": \"Premium concert ticket with VIP access\",\n  \"images\": [\"https://example.com/ticket.jpg\"],\n  \"metadata\": {\n    \"category\": \"entertainment\",\n    \"venue\": \"Madison Square Garden\"\n  },\n  \"type\": \"good\",\n  \"url\": \"https://example.com/tickets\",\n  \"default_price_data\": {\n    \"currency\": \"usd\",\n    \"unit_amount\": 5000,\n    \"tax_behavior\": \"exclusive\",\n    \"metadata\": {\n      \"tier\": \"standard\"\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/products",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "products"]
+                },
+                "description": "Create a new product in the main Stripe account with name, description, images, and metadata."
+              },
+              "response": []
+            },
+            {
+              "name": "CREATE PRODUCT PRICE",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"unit_amount\": 5000,\n  \"currency\": \"usd\",\n  \"recurring\": null,\n  \"metadata\": {\n    \"tier\": \"standard\"\n  },\n  \"active\": true,\n  \"nickname\": \"Standard Ticket\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/products/{{product_id}}/prices",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "products", "{{product_id}}", "prices"]
+                },
+                "description": "Create a price for a specific product in the main Stripe account."
+              },
+              "response": []
+            },
+            {
+              "name": "CREATE CONNECTED ACCOUNT PRODUCT",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Theater Show Ticket\",\n  \"description\": \"Premium theater show ticket\",\n  \"images\": [\"https://example.com/show.jpg\"],\n  \"metadata\": {\n    \"category\": \"theater\",\n    \"show\": \"Hamilton\"\n  },\n  \"type\": \"good\",\n  \"default_price_data\": {\n    \"currency\": \"usd\",\n    \"unit_amount\": 7500,\n    \"tax_behavior\": \"exclusive\",\n    \"metadata\": {\n      \"tier\": \"premium\"\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/products",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "products"]
+                },
+                "description": "Create a new product in a specific connected Stripe account."
+              },
+              "response": []
+            },
+            {
+              "name": "CREATE CONNECTED ACCOUNT PRICE",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"unit_amount\": 7500,\n  \"currency\": \"usd\",\n  \"recurring\": null,\n  \"metadata\": {\n    \"tier\": \"premium\"\n  },\n  \"active\": true,\n  \"nickname\": \"Premium Ticket\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/products/{{product_id}}/prices",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "products", "{{product_id}}", "prices"]
+                },
+                "description": "Create a price for a specific product in a connected Stripe account."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET ALL CONNECTED ACCOUNTS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/accounts",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "accounts"]
+                },
+                "description": "Get comprehensive Stripe data for all connected accounts including summary statistics, account details, balances, and recent transactions."
+              },
+              "response": []
+            },
+            {
+              "name": "GET ACCOUNT BY THEATER ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/accounts/{{theater_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "accounts", "{{theater_id}}"]
+                },
+                "description": "Get detailed information for a specific theater's connected account including balance, transactions, and account status."
+              },
+              "response": []
+            },
+            {
+              "name": "GET ALL PRODUCTS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/products?limit=100&active=true",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "products"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "active", "value": "true" }
+                  ]
+                },
+                "description": "Get all products from Stripe including pricing information, metadata, and images."
+              },
+              "response": []
+            },
+            {
+              "name": "GET ALL PAYMENTS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/payments?limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "payments"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "created_after", "value": "", "disabled": true },
+                    { "key": "created_before", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Get all payments/charges from Stripe including refunds, payment methods, and summary statistics."
+              },
+              "response": []
+            },
+            {
+              "name": "GET ALL CUSTOMERS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/customers?limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "customers"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "email", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Get all customers from Stripe including contact information, payment methods, and subscription status."
+              },
+              "response": []
+            },
+            {
+              "name": "GET ALL SUBSCRIPTIONS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/subscriptions?limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "subscriptions"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "status", "value": "", "disabled": true },
+                    { "key": "customer", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Get all subscriptions from Stripe including pricing, billing cycles, and subscription status."
+              },
+              "response": []
+            },
+            {
+              "name": "GET COMPREHENSIVE OVERVIEW",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/overview",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "overview"]
+                },
+                "description": "Get comprehensive Stripe data overview including all data (accounts, products, payments, customers, subscriptions) with summary statistics."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "UPDATE",
+          "item": [
+            {
+              "name": "UPDATE PRODUCT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Concert Ticket\",\n  \"description\": \"Updated description for premium concert ticket\",\n  \"active\": true,\n  \"metadata\": {\n    \"category\": \"entertainment\",\n    \"venue\": \"Updated Venue\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/products/{{product_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "products", "{{product_id}}"]
+                },
+                "description": "Update an existing product in the main Stripe account."
+              },
+              "response": []
+            },
+            {
+              "name": "UPDATE CONNECTED ACCOUNT PRODUCT",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Theater Show Ticket\",\n  \"description\": \"Updated description for theater show ticket\",\n  \"active\": true,\n  \"metadata\": {\n    \"category\": \"theater\",\n    \"show\": \"Updated Show\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/products/{{product_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "products", "{{product_id}}"]
+                },
+                "description": "Update an existing product in a connected Stripe account."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE PRODUCT",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/products/{{product_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "products", "{{product_id}}"]
+                },
+                "description": "Delete a product from the main Stripe account."
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE CONNECTED ACCOUNT PRODUCT",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/products/{{product_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "products", "{{product_id}}"]
+                },
+                "description": "Delete a product from a connected Stripe account."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "CONNECTED ACCOUNTS",
+          "item": [
+            {
+              "name": "GET CONNECTED ACCOUNT PRODUCTS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/products?limit=100&active=true",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "products"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "active", "value": "true" }
+                  ]
+                },
+                "description": "Get all products from a specific connected Stripe account including pricing information, metadata, and images."
+              },
+              "response": []
+            },
+            {
+              "name": "GET CONNECTED ACCOUNT PAYMENTS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/payments?limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "payments"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "created_after", "value": "", "disabled": true },
+                    { "key": "created_before", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Get all payments/charges from a specific connected Stripe account including refunds, payment methods, and summary statistics."
+              },
+              "response": []
+            },
+            {
+              "name": "GET CONNECTED ACCOUNT CUSTOMERS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/customers?limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "customers"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "email", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Get all customers from a specific connected Stripe account including contact information, payment methods, and subscription status."
+              },
+              "response": []
+            },
+            {
+              "name": "GET CONNECTED ACCOUNT SUBSCRIPTIONS",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/subscriptions?limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "subscriptions"],
+                  "query": [
+                    { "key": "limit", "value": "100" },
+                    { "key": "status", "value": "", "disabled": true },
+                    { "key": "customer", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Get all subscriptions from a specific connected Stripe account including pricing, billing cycles, and subscription status."
+              },
+              "response": []
+            },
+            {
+              "name": "GET CONNECTED ACCOUNT OVERVIEW",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{api_base_url}}/stripe-data/connected-accounts/{{account_id}}/overview",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["stripe-data", "connected-accounts", "{{account_id}}", "overview"]
+                },
+                "description": "Get comprehensive overview of all Stripe data from a specific connected account including account details, products, payments, customers, and subscriptions."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "RECEIVE STRIPE WEBHOOK",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Stripe-Signature", "value": "REPLACE_WITH_REAL_SIGNATURE" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{ }"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/webhooks/stripe",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["webhooks", "stripe"]
+                },
+                "description": "Typically test via Stripe CLI: `stripe listen --forward-to localhost:4242/webhooks/stripe`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users API",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE USER",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"displayName\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"photoURL\": \"https://example.com/photo.jpg\",\n  \"role\": \"customer\",\n  \"phone\": \"+1234567890\",\n  \"address\": \"123 Main St\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"zipCode\": \"10001\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/users",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "users"]
+                },
+                "description": "Create a new user with displayName, email, and optional fields"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET ALL USERS",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/users?role=customer&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "users"],
+                  "query": [
+                    { "key": "role", "value": "customer" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all users with optional filtering by role and pagination"
+              },
+              "response": []
+            },
+            {
+              "name": "GET USER BY ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/users/{{user_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "users", "{{user_id}}"]
+                },
+                "description": "Get a specific user by ID"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "UPDATE",
+          "item": [
+            {
+              "name": "UPDATE USER",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"displayName\": \"John Smith\",\n  \"phone\": \"+1987654321\",\n  \"city\": \"Los Angeles\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/users/{{user_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "users", "{{user_id}}"]
+                },
+                "description": "Update a user with all fields"
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH USER",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"+1555123456\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/users/{{user_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "users", "{{user_id}}"]
+                },
+                "description": "Partially update a user with only specified fields"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE USER",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/users/{{user_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "users", "{{user_id}}"]
+                },
+                "description": "Delete a user by ID"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Productions API",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE PRODUCTION",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Hamilton\",\n  \"description\": \"The revolutionary musical about Alexander Hamilton\",\n  \"shortDescription\": \"Revolutionary musical about Alexander Hamilton\",\n  \"imageURL\": \"https://example.com/hamilton.jpg\",\n  \"sellerId\": \"{{seller_id}}\",\n  \"venue\": {\n    \"name\": \"Richard Rodgers Theatre\",\n    \"address\": \"226 W 46th St, New York, NY 10036\"\n  },\n  \"duration\": 165,\n  \"categories\": [\"musical\", \"drama\", \"historical\"],\n  \"status\": \"active\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions"]
+                },
+                "description": "Create a new production with title, description, sellerId, and optional fields"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET ALL PRODUCTIONS",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions?sellerId={{seller_id}}&status=active&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions"],
+                  "query": [
+                    { "key": "sellerId", "value": "{{seller_id}}" },
+                    { "key": "status", "value": "active" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all productions with optional filtering and pagination"
+              },
+              "response": []
+            },
+            {
+              "name": "GET PRODUCTION BY ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions/{{production_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions", "{{production_id}}"]
+                },
+                "description": "Get a specific production by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "GET PRODUCTIONS BY SELLER",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions/seller/{{seller_id}}?status=active&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions", "seller", "{{seller_id}}"],
+                  "query": [
+                    { "key": "status", "value": "active" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all productions for a specific seller"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "UPDATE",
+          "item": [
+            {
+              "name": "UPDATE PRODUCTION",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Hamilton - Updated\",\n  \"description\": \"Updated description\",\n  \"status\": \"upcoming\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions/{{production_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions", "{{production_id}}"]
+                },
+                "description": "Update a production with all fields"
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH PRODUCTION",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"past\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions/{{production_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions", "{{production_id}}"]
+                },
+                "description": "Partially update a production"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE PRODUCTION",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions/{{production_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions", "{{production_id}}"]
+                },
+                "description": "Delete a production by ID"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Performances API",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE PERFORMANCE",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"date\": \"2024-12-25T19:30:00Z\",\n  \"sellerId\": \"{{seller_id}}\",\n  \"venueId\": \"{{venue_id}}\",\n  \"seatmapId\": \"{{seatmap_id}}\",\n  \"status\": \"scheduled\",\n  \"totalSeats\": 1000,\n  \"soldSeats\": 0,\n  \"priceCategories\": [\n    {\n      \"name\": \"Orchestra\",\n      \"price\": 15000\n    },\n    {\n      \"name\": \"Balcony\",\n      \"price\": 7500\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions/{{production_id}}/performances",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions", "{{production_id}}", "performances"]
+                },
+                "description": "Create a new performance for a production"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET ALL PERFORMANCES",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions/{{production_id}}/performances?status=scheduled&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions", "{{production_id}}", "performances"],
+                  "query": [
+                    { "key": "status", "value": "scheduled" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all performances for a production"
+              },
+              "response": []
+            },
+            {
+              "name": "GET PERFORMANCE BY ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions/{{production_id}}/performances/{{performance_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions", "{{production_id}}", "performances", "{{performance_id}}"]
+                },
+                "description": "Get a specific performance by ID"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "UPDATE",
+          "item": [
+            {
+              "name": "UPDATE PERFORMANCE",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"date\": \"2024-12-26T19:30:00Z\",\n  \"status\": \"sold-out\",\n  \"soldSeats\": 1000\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions/{{production_id}}/performances/{{performance_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions", "{{production_id}}", "performances", "{{performance_id}}"]
+                },
+                "description": "Update a performance"
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH PERFORMANCE",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"canceled\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions/{{production_id}}/performances/{{performance_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions", "{{production_id}}", "performances", "{{performance_id}}"]
+                },
+                "description": "Partially update a performance"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE PERFORMANCE",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/productions/{{production_id}}/performances/{{performance_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "productions", "{{production_id}}", "performances", "{{performance_id}}"]
+                },
+                "description": "Delete a performance by ID"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Venues API",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE VENUE",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Madison Square Garden\",\n  \"address\": \"4 Pennsylvania Plaza\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"zipCode\": \"10001\",\n  \"capacity\": 20789,\n  \"imageURL\": \"https://example.com/msg.jpg\",\n  \"sellerId\": \"{{seller_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues"]
+                },
+                "description": "Create a new venue with name, address, city, state, and sellerId"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET ALL VENUES",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues?sellerId={{seller_id}}&city=New York&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues"],
+                  "query": [
+                    { "key": "sellerId", "value": "{{seller_id}}" },
+                    { "key": "city", "value": "New York" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all venues with optional filtering and pagination"
+              },
+              "response": []
+            },
+            {
+              "name": "GET VENUE BY ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues/{{venue_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues", "{{venue_id}}"]
+                },
+                "description": "Get a specific venue by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "GET VENUES BY SELLER",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues/seller/{{seller_id}}?city=New York&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues", "seller", "{{seller_id}}"],
+                  "query": [
+                    { "key": "city", "value": "New York" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all venues for a specific seller"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "UPDATE",
+          "item": [
+            {
+              "name": "UPDATE VENUE",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Madison Square Garden - Updated\",\n  \"capacity\": 21000,\n  \"imageURL\": \"https://example.com/msg-updated.jpg\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues/{{venue_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues", "{{venue_id}}"]
+                },
+                "description": "Update a venue"
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH VENUE",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"capacity\": 22000\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues/{{venue_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues", "{{venue_id}}"]
+                },
+                "description": "Partially update a venue"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE VENUE",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues/{{venue_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues", "{{venue_id}}"]
+                },
+                "description": "Delete a venue by ID"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Seatmaps API",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE SEATMAP",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Main Floor Layout\",\n  \"layout\": {\n    \"type\": \"theater\",\n    \"sections\": 3,\n    \"rows\": 20\n  },\n  \"sections\": [\n    {\n      \"name\": \"Orchestra\",\n      \"rows\": 15,\n      \"seatsPerRow\": 25\n    },\n    {\n      \"name\": \"Mezzanine\",\n      \"rows\": 10,\n      \"seatsPerRow\": 20\n    }\n  ],\n  \"rows\": [\n    {\n      \"section\": \"Orchestra\",\n      \"rowNumber\": 1,\n      \"seats\": 25\n    }\n  ],\n  \"seats\": [\n    {\n      \"id\": \"A1\",\n      \"section\": \"Orchestra\",\n      \"row\": \"A\",\n      \"number\": \"1\",\n      \"price\": 15000\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues/{{venue_id}}/seatmaps",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues", "{{venue_id}}", "seatmaps"]
+                },
+                "description": "Create a new seatmap for a venue"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET ALL SEATMAPS",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues/{{venue_id}}/seatmaps?name=Main&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues", "{{venue_id}}", "seatmaps"],
+                  "query": [
+                    { "key": "name", "value": "Main" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all seatmaps for a venue"
+              },
+              "response": []
+            },
+            {
+              "name": "GET SEATMAP BY ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues/{{venue_id}}/seatmaps/{{seatmap_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues", "{{venue_id}}", "seatmaps", "{{seatmap_id}}"]
+                },
+                "description": "Get a specific seatmap by ID"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "UPDATE",
+          "item": [
+            {
+              "name": "UPDATE SEATMAP",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Main Floor Layout\",\n  \"layout\": {\n    \"type\": \"theater\",\n    \"sections\": 4,\n    \"rows\": 25\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues/{{venue_id}}/seatmaps/{{seatmap_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues", "{{venue_id}}", "seatmaps", "{{seatmap_id}}"]
+                },
+                "description": "Update a seatmap"
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH SEATMAP",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Premium Layout\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues/{{venue_id}}/seatmaps/{{seatmap_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues", "{{venue_id}}", "seatmaps", "{{seatmap_id}}"]
+                },
+                "description": "Partially update a seatmap"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE SEATMAP",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/venues/{{venue_id}}/seatmaps/{{seatmap_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "venues", "{{venue_id}}", "seatmaps", "{{seatmap_id}}"]
+                },
+                "description": "Delete a seatmap by ID"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Orders API",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE ORDER",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"sellerId\": \"{{seller_id}}\",\n  \"productionId\": \"{{production_id}}\",\n  \"performanceId\": \"{{performance_id}}\",\n  \"totalAmount\": 30000,\n  \"status\": \"pending\",\n  \"paymentStatus\": \"pending\",\n  \"paymentMethod\": \"card\",\n  \"tickets\": [\n    {\n      \"seatId\": \"A1\",\n      \"section\": \"Orchestra\",\n      \"row\": \"A\",\n      \"seatNumber\": \"1\",\n      \"price\": 15000\n    },\n    {\n      \"seatId\": \"A2\",\n      \"section\": \"Orchestra\",\n      \"row\": \"A\",\n      \"seatNumber\": \"2\",\n      \"price\": 15000\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders"]
+                },
+                "description": "Create a new order with tickets"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET ALL ORDERS",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders?userId={{user_id}}&status=completed&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders"],
+                  "query": [
+                    { "key": "userId", "value": "{{user_id}}" },
+                    { "key": "status", "value": "completed" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all orders with optional filtering and pagination"
+              },
+              "response": []
+            },
+            {
+              "name": "GET ORDER BY ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/{{order_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "{{order_id}}"]
+                },
+                "description": "Get a specific order by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "GET ORDERS BY USER",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/user/{{user_id}}?status=completed&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "user", "{{user_id}}"],
+                  "query": [
+                    { "key": "status", "value": "completed" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all orders for a specific user"
+              },
+              "response": []
+            },
+            {
+              "name": "GET ORDERS BY SELLER",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/seller/{{seller_id}}?status=completed&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "seller", "{{seller_id}}"],
+                  "query": [
+                    { "key": "status", "value": "completed" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all orders for a specific seller"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "UPDATE",
+          "item": [
+            {
+              "name": "UPDATE ORDER",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"completed\",\n  \"paymentStatus\": \"paid\",\n  \"paymentMethod\": \"stripe\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/{{order_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "{{order_id}}"]
+                },
+                "description": "Update an order"
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH ORDER",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"canceled\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/{{order_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "{{order_id}}"]
+                },
+                "description": "Partially update an order"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE ORDER",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/{{order_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "{{order_id}}"]
+                },
+                "description": "Delete an order by ID"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tickets API",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE TICKET",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"seatId\": \"B5\",\n  \"section\": \"Orchestra\",\n  \"row\": \"B\",\n  \"seatNumber\": \"5\",\n  \"price\": 15000,\n  \"status\": \"valid\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/{{order_id}}/tickets",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "{{order_id}}", "tickets"]
+                },
+                "description": "Create a new ticket for an order"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET ALL TICKETS",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/{{order_id}}/tickets?status=valid&section=Orchestra&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "{{order_id}}", "tickets"],
+                  "query": [
+                    { "key": "status", "value": "valid" },
+                    { "key": "section", "value": "Orchestra" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all tickets for an order"
+              },
+              "response": []
+            },
+            {
+              "name": "GET TICKET BY ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/{{order_id}}/tickets/{{ticket_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "{{order_id}}", "tickets", "{{ticket_id}}"]
+                },
+                "description": "Get a specific ticket by ID"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "UPDATE",
+          "item": [
+            {
+              "name": "UPDATE TICKET",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"seatId\": \"B6\",\n  \"section\": \"Orchestra\",\n  \"row\": \"B\",\n  \"seatNumber\": \"6\",\n  \"price\": 15000,\n  \"status\": \"used\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/{{order_id}}/tickets/{{ticket_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "{{order_id}}", "tickets", "{{ticket_id}}"]
+                },
+                "description": "Update a ticket"
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH TICKET",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"used\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/{{order_id}}/tickets/{{ticket_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "{{order_id}}", "tickets", "{{ticket_id}}"]
+                },
+                "description": "Partially update a ticket"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE TICKET",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/{{order_id}}/tickets/{{ticket_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "{{order_id}}", "tickets", "{{ticket_id}}"]
+                },
+                "description": "Delete a ticket by ID"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "api_base_url", "value": "http://localhost:4242" },
+    { "key": "app_base_url", "value": "http://localhost:3000" },
+    { "key": "theater_id", "value": "test_theater_1" },
+    { "key": "account_id", "value": "acct_1S8GzjEnRw19N81P" },
+    { "key": "product_id", "value": "prod_1234567890" },
+    { "key": "user_id", "value": "user_1234567890" },
+    { "key": "seller_id", "value": "seller_1234567890" },
+    { "key": "production_id", "value": "prod_1234567890" },
+    { "key": "performance_id", "value": "perf_1234567890" },
+    { "key": "venue_id", "value": "venue_1234567890" },
+    { "key": "seatmap_id", "value": "seatmap_1234567890" },
+    { "key": "order_id", "value": "order_1234567890" },
+    { "key": "ticket_id", "value": "ticket_1234567890" }
+  ]
+}

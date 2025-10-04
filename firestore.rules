@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - users can read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Allow public read for basic user info (for production listings)
+      allow read: if resource.data.role == 'seller';
+    }
+    
+    // Productions collection - sellers can manage their own productions
+    match /productions/{productionId} {
+      allow read: if true; // Public read for browsing
+      allow write: if request.auth != null && 
+        (resource == null || resource.data.sellerId == request.auth.uid);
+    }
+    
+    // Performances subcollection - inherit from parent production
+    match /productions/{productionId}/performances/{performanceId} {
+      allow read: if true; // Public read
+      allow write: if request.auth != null && 
+        exists(/databases/$(database)/documents/productions/$(productionId)) &&
+        get(/databases/$(database)/documents/productions/$(productionId)).data.sellerId == request.auth.uid;
+    }
+    
+    // Venues collection - sellers can manage their own venues
+    match /venues/{venueId} {
+      allow read: if true; // Public read
+      allow write: if request.auth != null && 
+        (resource == null || resource.data.sellerId == request.auth.uid);
+    }
+    
+    // Seatmaps subcollection - inherit from parent venue
+    match /venues/{venueId}/seatmaps/{seatmapId} {
+      allow read: if true; // Public read
+      allow write: if request.auth != null && 
+        exists(/databases/$(database)/documents/venues/$(venueId)) &&
+        get(/databases/$(database)/documents/venues/$(venueId)).data.sellerId == request.auth.uid;
+    }
+    
+    // Orders collection - users can read/write their own orders
+    match /orders/{orderId} {
+      allow read, write: if request.auth != null && 
+        (resource.data.userId == request.auth.uid || resource.data.sellerId == request.auth.uid);
+    }
+    
+    // Tickets subcollection - inherit from parent order
+    match /orders/{orderId}/tickets/{ticketId} {
+      allow read, write: if request.auth != null && 
+        exists(/databases/$(database)/documents/orders/$(orderId)) &&
+        (get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid ||
+         get(/databases/$(database)/documents/orders/$(orderId)).data.sellerId == request.auth.uid);
+    }
+    
+    // Theaters collection (legacy) - for Stripe Connect
+    match /theaters/{theaterId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

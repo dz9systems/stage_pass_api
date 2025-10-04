@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Stripe = require("stripe");
-const { getAllTheaters } = require("../db");
+const { VenuesController } = require("../controllers");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
@@ -11,7 +11,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 router.get("/accounts", async (req, res) => {
   try {
     // Get all theaters from local database
-    const theaters = await getAllTheaters();
+    const theaters = await VenuesController.getAllVenues();
     
     const dashboardData = {
       summary: {
@@ -173,7 +173,7 @@ router.get("/accounts/:theaterId", async (req, res) => {
     const { theaterId } = req.params;
     
     // Get theater from local database
-    const theaters = await getAllTheaters();
+    const theaters = await VenuesController.getAllVenues();
     const theater = theaters.find(t => t.id === theaterId);
     
     if (!theater) {
@@ -544,7 +544,7 @@ router.get("/overview", async (req, res) => {
     ] = await Promise.all([
       // Get accounts data (reuse existing logic)
       (async () => {
-        const theaters = await getAllTheaters();
+        const theaters = await VenuesController.getAllVenues();
         const accounts = [];
         
         for (const theater of theaters) {
