@@ -45,14 +45,14 @@ app.get('/', (req, res) => {
 });
 
 // CRUD API routes
-app.use('/api/users', usersRouter);
-app.use('/api/productions', productionsRouter);
-app.use('/api/productions', performancesRouter);
-app.use('/api/venues', venuesRouter);
-app.use('/api/venues', seatmapsRouter);
-app.use('/api/orders', ordersRouter);
-app.use('/api/orders', ticketsRouter);
-app.use('/api/upload', uploadRouter);
+app.use('/users', usersRouter);
+app.use('/productions', productionsRouter);
+app.use('/productions', performancesRouter);
+app.use('/venues', venuesRouter);
+app.use('/venues', seatmapsRouter);
+app.use('/orders', ordersRouter);
+app.use('/orders', ticketsRouter);
+app.use('/upload', uploadRouter);
 
 // Export the Express app as a Firebase Function
 exports.api = functions.https.onRequest(app);

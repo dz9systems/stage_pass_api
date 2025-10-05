@@ -49,110 +49,127 @@ ensureBucketExists();
 router.post('/', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: 'No file provided'
-      });
+      return res.status(400).json({ success: false, error: 'No file provided' });
     }
+
+    // Extract + normalize fields
     const file = req.file;
     const {
       folder = 'uploads',
-      isPublic = false,
-      entityType = 'general', // venues, productions, users, etc.
-      entityId = null // specific ID for the entity
+      isPublic: isPublicRaw = false,
+      entityType: entityTypeRaw = 'general', // 'venues', 'productions', 'users', 'general'
+      entityId: entityIdRaw = null,
     } = req.body;
 
-    // Generate filename - use entity ID if provided, otherwise generate unique ID
-    const fileExtension = file.originalname.split('.').pop();
-    let fileName;
-    let filePath;
-    
-    if (entityType && entityId) {
-      // Use entity ID as filename for structured paths
-      fileName = `${entityId}.${fileExtension}`;
-      filePath = `${entityType}/${entityId}/${fileName}`;
-    } else {
-      // Generate unique ID for general uploads
-      const fileId = generateId();
-      console.log('Generated file ID:', fileId);
-      fileName = `${fileId}.${fileExtension}`;
-      filePath = `${folder}/${fileName}`;
+    const isPublic = parseBool(isPublicRaw);
+    const entityType = entityTypeRaw || 'general';
+    const entityId = entityIdRaw || null;
+
+    // Validate entity type to avoid arbitrary path writes
+    if (!ALLOWED_ENTITY_TYPES.has(entityType)) {
+      return res.status(400).json({ success: false, error: 'Invalid entityType' });
     }
 
-    // Upload to Firebase Storage
-    const fileUpload = bucket.file(filePath);
-    const stream = fileUpload.createWriteStream({
+    // Generate a stable internal id for tracking (even if we use entityId for filename)
+    const internalId = generateId();
+
+    // Derive extension: prefer original name; fall back to mimetype
+    const origExt = file.originalname.includes('.') ? file.originalname.split('.').pop() : '';
+    const mimeExt = mime.extension(file.mimetype) || '';
+    const ext = sanitizeSegment((origExt || mimeExt || 'bin').toLowerCase());
+
+    const filePath = buildStoragePath({
+      entityType: entityId ? entityType : null,
+      entityId: entityId || null,
+      folder,
+      fileId: internalId,
+      ext,
+    });
+
+    const gcsFile = bucket.file(filePath);
+
+    // Guard against overwrite if using entityId path
+    if (entityId && !shouldAllowOverwrite(req)) {
+      const [exists] = await gcsFile.exists();
+      if (exists) {
+        return res.status(409).json({
+          success: false,
+          error: 'File already exists for this entity. Set allowOverwrite=true to replace.',
+          path: filePath,
+        });
+      }
+    }
+
+    // Helpful headers
+    const cacheControl = isPublic ? 'public, max-age=31536000, immutable' : 'private, max-age=0, no-cache';
+    const contentDisposition = `inline; filename="${file.originalname.replace(/"/g, '')}"`;
+
+    // Save buffer (simpler than manual createWriteStream)
+    await gcsFile.save(file.buffer, {
+      resumable: false,
       metadata: {
         contentType: file.mimetype,
+        cacheControl,
+        contentDisposition,
         metadata: {
           originalName: file.originalname,
           uploadedAt: new Date().toISOString(),
-          uploadedBy: req.body.userId || 'anonymous'
-        }
-      }
+          uploadedBy: (req.user?.uid || req.body.userId || 'anonymous'),
+          entityType,
+          entityId: entityId || '',
+          internalId,
+        },
+      },
     });
 
-    stream.on('error', (error) => {
-      console.error('Upload error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to upload file'
+    // Toggle public ACL if requested
+    if (isPublic) {
+      await gcsFile.makePublic();
+    }
+
+    // Build URL: public uses durable URL; private gets a signed URL (v4)
+    let url;
+    if (isPublic) {
+      url = `https://storage.googleapis.com/${bucket.name}/${encodeURI(filePath)}`;
+    } else {
+      const [signedUrl] = await gcsFile.getSignedUrl({
+        version: 'v4',
+        action: 'read',
+        expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
       });
+      url = signedUrl;
+    }
+
+    return res.json({
+      success: true,
+      file: {
+        id: internalId, // always present and traceable
+        entityId: entityId || null,
+        entityType,
+        originalName: file.originalname,
+        fileName: filePath.split('/').pop(),
+        path: filePath,
+        url,
+        size: file.size,
+        mimeType: file.mimetype,
+        folder: entityId ? undefined : folder, // folder only relevant for non-entity uploads
+        public: isPublic,
+        uploadedAt: new Date().toISOString(),
+      },
     });
-
-    stream.on('finish', async () => {
-      try {
-        // Make file public if requested
-        if (isPublic === 'true' || isPublic === true) {
-          await fileUpload.makePublic();
-        }
-
-        // Get file URL
-        const fileUrl = isPublic === 'true' || isPublic === true
-          ? `https://storage.googleapis.com/${bucket.name}/${filePath}`
-          : await fileUpload.getSignedUrl({
-              action: 'read',
-              expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
-            });
-
-        res.json({
-          success: true,
-          file: {
-            id: entityId || generateId(), // Use entity ID if available, otherwise generate one
-            name: file.originalname,
-            fileName: fileName,
-            path: filePath,
-            url: Array.isArray(fileUrl) ? fileUrl[0] : fileUrl,
-            size: file.size,
-            mimeType: file.mimetype,
-            folder: entityType || folder,
-            public: isPublic === 'true' || isPublic === true,
-            uploadedAt: new Date().toISOString()
-          }
-        });
-      } catch (error) {
-        console.error('Error getting file URL:', error);
-        res.status(500).json({
-          success: false,
-          error: 'Failed to get file URL'
-        });
-      }
-    });
-
-    stream.end(file.buffer);
-
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({
+  } catch (err) {
+    console.error('Upload error:', err);
+    return res.status(500).json({
       success: false,
       error: 'Failed to upload file',
-      message: error.message
+      message: err?.message || 'Unknown error',
     });
   }
 });
 
 // POST /api/upload/multiple - Upload multiple files
 router.post('/multiple', upload.array('files', 10), async (req, res) => {
+  console.log('Upload request body:', req.body);
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -171,19 +188,18 @@ router.post('/multiple', upload.array('files', 10), async (req, res) => {
 
     for (const file of req.files) {
       try {
-        // Generate filename - use entity ID if provided, otherwise generate unique ID
+        // Generate unique filename
+        const fileId = generateId();
         const fileExtension = file.originalname.split('.').pop();
-        let fileName;
+        const fileName = `${fileId}.${fileExtension}`;
+
+        // Create structured path based on entity type
         let filePath;
-        
         if (entityType && entityId) {
-          // Use entity ID as filename for structured paths
-          fileName = `${entityId}.${fileExtension}`;
+          // Structured path: entityType/entityId/filename
           filePath = `${entityType}/${entityId}/${fileName}`;
         } else {
-          // Generate unique ID for general uploads
-          const fileId = generateId();
-          fileName = `${fileId}.${fileExtension}`;
+          // Fallback to simple folder structure
           filePath = `${folder}/${fileName}`;
         }
 
