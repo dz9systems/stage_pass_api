@@ -56,13 +56,28 @@ router.post('/', upload.single('file'), async (req, res) => {
     }
 
     const file = req.file;
-    const { folder = 'uploads', isPublic = false } = req.body;
+    const { 
+      folder = 'uploads', 
+      isPublic = false, 
+      entityType = 'general', // venues, productions, users, etc.
+      entityId = null // specific ID for the entity
+    } = req.body;
 
-    // Generate unique filename
-    const fileId = generateId();
+    // Generate filename - use entity ID if provided, otherwise generate unique ID
     const fileExtension = file.originalname.split('.').pop();
-    const fileName = `${fileId}.${fileExtension}`;
-    const filePath = `${folder}/${fileName}`;
+    let fileName;
+    let filePath;
+    
+    if (entityType && entityId) {
+      // Use entity ID as filename for structured paths
+      fileName = `${entityId}.${fileExtension}`;
+      filePath = `${entityType}/${entityId}/${fileName}`;
+    } else {
+      // Generate unique ID for general uploads
+      const fileId = generateId();
+      fileName = `${fileId}.${fileExtension}`;
+      filePath = `${folder}/${fileName}`;
+    }
 
     // Upload to Firebase Storage
     const fileUpload = bucket.file(filePath);
@@ -146,16 +161,31 @@ router.post('/multiple', upload.array('files', 10), async (req, res) => {
       });
     }
 
-    const { folder = 'uploads', isPublic = false } = req.body;
+    const { 
+      folder = 'uploads', 
+      isPublic = false, 
+      entityType = 'general', // venues, productions, users, etc.
+      entityId = null // specific ID for the entity
+    } = req.body;
     const uploadedFiles = [];
 
     for (const file of req.files) {
       try {
-        // Generate unique filename
-        const fileId = generateId();
+        // Generate filename - use entity ID if provided, otherwise generate unique ID
         const fileExtension = file.originalname.split('.').pop();
-        const fileName = `${fileId}.${fileExtension}`;
-        const filePath = `${folder}/${fileName}`;
+        let fileName;
+        let filePath;
+        
+        if (entityType && entityId) {
+          // Use entity ID as filename for structured paths
+          fileName = `${entityId}.${fileExtension}`;
+          filePath = `${entityType}/${entityId}/${fileName}`;
+        } else {
+          // Generate unique ID for general uploads
+          const fileId = generateId();
+          fileName = `${fileId}.${fileExtension}`;
+          filePath = `${folder}/${fileName}`;
+        }
 
         // Upload to Firebase Storage
         const fileUpload = bucket.file(filePath);

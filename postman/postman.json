@@ -1556,7 +1556,7 @@
           "name": "CREATE",
           "item": [
             {
-              "name": "UPLOAD SINGLE FILE",
+              "name": "UPLOAD SINGLE FILE (General)",
               "request": {
                 "method": "POST",
                 "header": [],
@@ -1594,7 +1594,105 @@
                   "host": ["{{api_base_url}}"],
                   "path": ["api", "upload"]
                 },
-                "description": "Upload a single file to Firebase Storage"
+                "description": "Upload a single file to Firebase Storage (general upload)"
+              },
+              "response": []
+            },
+            {
+              "name": "UPLOAD VENUE IMAGE",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "Venue image file"
+                    },
+                    {
+                      "key": "entityType",
+                      "value": "venues",
+                      "type": "text",
+                      "description": "Entity type for structured path"
+                    },
+                    {
+                      "key": "entityId",
+                      "value": "{{venue_id}}",
+                      "type": "text",
+                      "description": "Venue ID for structured path"
+                    },
+                    {
+                      "key": "isPublic",
+                      "value": "true",
+                      "type": "text",
+                      "description": "Whether to make the file public (true/false)"
+                    },
+                    {
+                      "key": "userId",
+                      "value": "{{user_id}}",
+                      "type": "text",
+                      "description": "User ID who uploaded the file"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/upload",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "upload"]
+                },
+                "description": "Upload a venue image with structured path: venues/{venue_id}/{filename}"
+              },
+              "response": []
+            },
+            {
+              "name": "UPLOAD PRODUCTION IMAGE",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "Production image file"
+                    },
+                    {
+                      "key": "entityType",
+                      "value": "productions",
+                      "type": "text",
+                      "description": "Entity type for structured path"
+                    },
+                    {
+                      "key": "entityId",
+                      "value": "{{production_id}}",
+                      "type": "text",
+                      "description": "Production ID for structured path"
+                    },
+                    {
+                      "key": "isPublic",
+                      "value": "true",
+                      "type": "text",
+                      "description": "Whether to make the file public (true/false)"
+                    },
+                    {
+                      "key": "userId",
+                      "value": "{{user_id}}",
+                      "type": "text",
+                      "description": "User ID who uploaded the file"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/upload",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "upload"]
+                },
+                "description": "Upload a production image with structured path: productions/{production_id}/{filename}"
               },
               "response": []
             },

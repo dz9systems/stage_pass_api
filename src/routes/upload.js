@@ -54,16 +54,30 @@ router.post('/', upload.single('file'), async (req, res) => {
         error: 'No file provided'
       });
     }
-
     const file = req.file;
-    const { folder = 'uploads', isPublic = false } = req.body;
+    const {
+      folder = 'uploads',
+      isPublic = false,
+      entityType = 'general', // venues, productions, users, etc.
+      entityId = null // specific ID for the entity
+    } = req.body;
 
-    // Generate unique filename
-    const fileId = generateId();
-    console.log('Generated file ID:', fileId);
+    // Generate filename - use entity ID if provided, otherwise generate unique ID
     const fileExtension = file.originalname.split('.').pop();
-    const fileName = `${fileId}.${fileExtension}`;
-    const filePath = `${folder}/${fileName}`;
+    let fileName;
+    let filePath;
+    
+    if (entityType && entityId) {
+      // Use entity ID as filename for structured paths
+      fileName = `${entityId}.${fileExtension}`;
+      filePath = `${entityType}/${entityId}/${fileName}`;
+    } else {
+      // Generate unique ID for general uploads
+      const fileId = generateId();
+      console.log('Generated file ID:', fileId);
+      fileName = `${fileId}.${fileExtension}`;
+      filePath = `${folder}/${fileName}`;
+    }
 
     // Upload to Firebase Storage
     const fileUpload = bucket.file(filePath);
@@ -104,14 +118,14 @@ router.post('/', upload.single('file'), async (req, res) => {
         res.json({
           success: true,
           file: {
-            id: fileId,
+            id: entityId || generateId(), // Use entity ID if available, otherwise generate one
             name: file.originalname,
             fileName: fileName,
             path: filePath,
             url: Array.isArray(fileUrl) ? fileUrl[0] : fileUrl,
             size: file.size,
             mimeType: file.mimetype,
-            folder: folder,
+            folder: entityType || folder,
             public: isPublic === 'true' || isPublic === true,
             uploadedAt: new Date().toISOString()
           }
@@ -147,16 +161,31 @@ router.post('/multiple', upload.array('files', 10), async (req, res) => {
       });
     }
 
-    const { folder = 'uploads', isPublic = false } = req.body;
+    const {
+      folder = 'uploads',
+      isPublic = false,
+      entityType = 'general', // venues, productions, users, etc.
+      entityId = null // specific ID for the entity
+    } = req.body;
     const uploadedFiles = [];
 
     for (const file of req.files) {
       try {
-        // Generate unique filename
-        const fileId = generateId();
+        // Generate filename - use entity ID if provided, otherwise generate unique ID
         const fileExtension = file.originalname.split('.').pop();
-        const fileName = `${fileId}.${fileExtension}`;
-        const filePath = `${folder}/${fileName}`;
+        let fileName;
+        let filePath;
+        
+        if (entityType && entityId) {
+          // Use entity ID as filename for structured paths
+          fileName = `${entityId}.${fileExtension}`;
+          filePath = `${entityType}/${entityId}/${fileName}`;
+        } else {
+          // Generate unique ID for general uploads
+          const fileId = generateId();
+          fileName = `${fileId}.${fileExtension}`;
+          filePath = `${folder}/${fileName}`;
+        }
 
         // Upload to Firebase Storage
         const fileUpload = bucket.file(filePath);
