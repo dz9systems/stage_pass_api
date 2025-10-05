@@ -1,0 +1,55 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow authenticated users to upload files
+    match /uploads/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Allow public read for public files
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Production images - public read, authenticated write
+    match /productions/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // User avatars - public read, authenticated write
+    match /avatars/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Venue images - public read, authenticated write
+    match /venues/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Gallery images - public read, authenticated write
+    match /gallery/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Documents - authenticated users only
+    match /documents/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Temporary files - authenticated users only, auto-cleanup
+    match /temp/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Admin files - admin users only (you can add admin role check)
+    match /admin/{allPaths=**} {
+      allow read, write: if request.auth != null && 
+        request.auth.token.admin == true;
+    }
+  }
+}

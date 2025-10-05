@@ -18,6 +18,7 @@ const venuesRouter = require("./routes/venues");
 const seatmapsRouter = require("./routes/seatmaps");
 const ordersRouter = require("./routes/orders");
 const ticketsRouter = require("./routes/tickets");
+const uploadRouter = require("./routes/upload");
 
 const app = express();
 const port = process.env.PORT || 4242;
@@ -51,6 +52,7 @@ app.use("/api/venues", venuesRouter);
 app.use("/api/venues", seatmapsRouter); // seatmaps are subcollection of venues
 app.use("/api/orders", ordersRouter);
 app.use("/api/orders", ticketsRouter); // tickets are subcollection of orders
+app.use("/api/upload", uploadRouter);
 
 // Start server
 app.listen(port, () => {

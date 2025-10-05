@@ -14,7 +14,8 @@ const corsOptions = {
   origin: [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    'https://stage-pass-b1d9b.web.app'
+    'https://stage-pass-b1d9b.web.app',
+    'https://project-theatre-ticketing-system-with-crm-integration-440.magicpatterns.app'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -32,6 +33,7 @@ const venuesRouter = require('./routes/venues');
 const seatmapsRouter = require('./routes/seatmaps');
 const ordersRouter = require('./routes/orders');
 const ticketsRouter = require('./routes/tickets');
+const uploadRouter = require('./routes/upload');
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -50,6 +52,7 @@ app.use('/api/venues', venuesRouter);
 app.use('/api/venues', seatmapsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/orders', ticketsRouter);
+app.use('/api/upload', uploadRouter);
 
 // Export the Express app as a Firebase Function
 exports.api = functions.https.onRequest(app);

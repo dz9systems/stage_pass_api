@@ -1550,6 +1550,152 @@
       ]
     },
     {
+      "name": "File Upload API",
+      "item": [
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "UPLOAD SINGLE FILE",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "File to upload"
+                    },
+                    {
+                      "key": "folder",
+                      "value": "uploads",
+                      "type": "text",
+                      "description": "Folder to store the file in"
+                    },
+                    {
+                      "key": "isPublic",
+                      "value": "true",
+                      "type": "text",
+                      "description": "Whether to make the file public (true/false)"
+                    },
+                    {
+                      "key": "userId",
+                      "value": "{{user_id}}",
+                      "type": "text",
+                      "description": "User ID who uploaded the file"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/upload",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "upload"]
+                },
+                "description": "Upload a single file to Firebase Storage"
+              },
+              "response": []
+            },
+            {
+              "name": "UPLOAD MULTIPLE FILES",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "files",
+                      "type": "file",
+                      "src": [],
+                      "description": "First file to upload"
+                    },
+                    {
+                      "key": "files",
+                      "type": "file",
+                      "src": [],
+                      "description": "Second file to upload"
+                    },
+                    {
+                      "key": "folder",
+                      "value": "gallery",
+                      "type": "text",
+                      "description": "Folder to store the files in"
+                    },
+                    {
+                      "key": "isPublic",
+                      "value": "true",
+                      "type": "text",
+                      "description": "Whether to make the files public (true/false)"
+                    },
+                    {
+                      "key": "userId",
+                      "value": "{{user_id}}",
+                      "type": "text",
+                      "description": "User ID who uploaded the files"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/upload/multiple",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "upload", "multiple"]
+                },
+                "description": "Upload multiple files to Firebase Storage (up to 10 files)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET FILE INFORMATION",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/upload/{{file_id}}?folder=uploads",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "upload", "{{file_id}}"],
+                  "query": [
+                    { "key": "folder", "value": "uploads" }
+                  ]
+                },
+                "description": "Get information about a specific file"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE FILE",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/upload/{{file_id}}?folder=uploads",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "upload", "{{file_id}}"],
+                  "query": [
+                    { "key": "folder", "value": "uploads" }
+                  ]
+                },
+                "description": "Delete a file from Firebase Storage"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Tickets API",
       "item": [
         {
@@ -1686,16 +1832,17 @@
   "variable": [
     { "key": "api_base_url", "value": "http://localhost:4242" },
     { "key": "app_base_url", "value": "http://localhost:3000" },
-    { "key": "theater_id", "value": "test_theater_1" },
+    { "key": "theater_id", "value": "WSBuy0f9CChSK254B00360pVmEn1" },
     { "key": "account_id", "value": "acct_1S8GzjEnRw19N81P" },
     { "key": "product_id", "value": "prod_1234567890" },
-    { "key": "user_id", "value": "user_1234567890" },
-    { "key": "seller_id", "value": "seller_1234567890" },
-    { "key": "production_id", "value": "prod_1234567890" },
-    { "key": "performance_id", "value": "perf_1234567890" },
-    { "key": "venue_id", "value": "venue_1234567890" },
-    { "key": "seatmap_id", "value": "seatmap_1234567890" },
+    { "key": "user_id", "value": "WSBuy0f9CChSK254B00360pVmEn1" },
+    { "key": "seller_id", "value": "WSBuy0f9CChSK254B00360pVmEn1" },
+    { "key": "production_id", "value": "mgcnmrs47c9htmzjcyc" },
+    { "key": "performance_id", "value": "mgcpgzop6efocxqi0if" },
+    { "key": "venue_id", "value": "mgcpbzyth834f6d7ji" },
+    { "key": "seatmap_id", "value": "mgcpfxz62vaw2p1nc5y" },
     { "key": "order_id", "value": "order_1234567890" },
-    { "key": "ticket_id", "value": "ticket_1234567890" }
+    { "key": "ticket_id", "value": "ticket_1234567890" },
+    { "key": "file_id", "value": "file_1234567890" }
   ]
 }

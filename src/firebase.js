@@ -9,13 +9,15 @@ if (!admin.apps.length) {
   if (serviceAccount) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      databaseURL: process.env.FIREBASE_DATABASE_URL || "https://stage-pass-b1d9b-default-rtdb.firebaseio.com/"
+      databaseURL: process.env.FIREBASE_DATABASE_URL || "https://stage-pass-b1d9b-default-rtdb.firebaseio.com/",
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "stage-pass-b1d9b.firebasestorage.app"
     });
   } else {
     // For local development, you can use the Firebase emulator
     // or set GOOGLE_APPLICATION_CREDENTIALS environment variable
     admin.initializeApp({
-      projectId: process.env.FIREBASE_PROJECT_ID || "stage-pass-b1d9b"
+      projectId: process.env.FIREBASE_PROJECT_ID || "stage-pass-b1d9b",
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "stage-pass-b1d9b.firebasestorage.app"
     });
   }
 }
