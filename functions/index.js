@@ -13,7 +13,7 @@ const app = express();
 const corsOptions = {
   origin: [
     "http://localhost:5173",
-    "http://127.0.0.1:5173", 
+    "http://127.0.0.1:5173",
     "https://stage-pass-b1d9b.web.app"
   ],
   credentials: true,
@@ -35,8 +35,8 @@ const ticketsRouter = require('./routes/tickets');
 
 // Health check endpoint
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Stage Pass API - Firebase Functions',
+  res.json({
+    message: 'Stage Pass API - Firebase Functions - Full API',
     status: 'healthy',
     timestamp: new Date().toISOString()
   });
