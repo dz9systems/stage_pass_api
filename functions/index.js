@@ -1,4 +1,4 @@
-const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
@@ -55,4 +55,11 @@ app.use('/orders', ticketsRouter);
 app.use('/upload', uploadRouter);
 
 // Export the Express app as a Firebase Function
-exports.api = functions.https.onRequest(app);
+// Export the Express app as a Firebase Function
+exports.api = onRequest({
+  region: 'us-central1',
+  memory: '256MiB',
+  timeoutSeconds: 60,
+  cors: true,
+  invoker: 'public'  // This allows unauthenticated access
+}, app);
