@@ -41,9 +41,9 @@ class SeatmapsController {
       const seatmapsRef = db.collection(this.parentCollection)
         .doc(venueId)
         .collection(this.subcollection);
-      
+
       let query = seatmapsRef;
-      
+
       // Apply filters
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -56,14 +56,14 @@ class SeatmapsController {
           }
         }
       });
-      
+
       const snapshot = await query.get();
       const seatmaps = docsToObjects(snapshot.docs);
-      
+
       if (pagination.limit || pagination.offset) {
         return applyPagination(seatmaps, pagination.limit, pagination.offset);
       }
-      
+
       return seatmaps;
     } catch (error) {
       throw new Error(`Failed to get all seatmaps: ${error.message}`);
@@ -94,20 +94,20 @@ class SeatmapsController {
       const seatmapsRef = db.collection(this.parentCollection)
         .doc(venueId)
         .collection(this.subcollection);
-      
+
       const snapshot = await seatmapsRef.get();
       const seatmaps = docsToObjects(snapshot.docs);
-      
+
       // Filter by search term (case insensitive)
-      const filteredSeatmaps = seatmaps.filter(seatmap => 
+      const filteredSeatmaps = seatmaps.filter(seatmap =>
         seatmap.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         seatmap.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      
+
       if (pagination.limit || pagination.offset) {
         return applyPagination(filteredSeatmaps, pagination.limit, pagination.offset);
       }
-      
+
       return filteredSeatmaps;
     } catch (error) {
       throw new Error(`Failed to search seatmaps: ${error.message}`);
@@ -123,6 +123,8 @@ class SeatmapsController {
         .doc(seatmapId);
       const updateDataWithTimestamp = addTimestamps(updateData, true);
       await seatmapRef.update(updateDataWithTimestamp);
+      console.log(`Seatmap ${seatmapId} updated successfully.`);
+      console.log('Update Data:', updateDataWithTimestamp);
       return { id: seatmapId, ...updateDataWithTimestamp };
     } catch (error) {
       throw new Error(`Failed to update seatmap: ${error.message}`);
@@ -176,23 +178,23 @@ class SeatmapsController {
       const seatmapsRef = db.collection(this.parentCollection)
         .doc(venueId)
         .collection(this.subcollection);
-      
+
       const snapshot = await seatmapsRef.get();
       const seatmaps = docsToObjects(snapshot.docs);
-      
+
       const stats = {
         total: seatmaps.length,
         active: seatmaps.filter(s => s.status === 'active').length,
         inactive: seatmaps.filter(s => s.status === 'inactive').length,
         draft: seatmaps.filter(s => s.status === 'draft').length,
         totalCapacity: seatmaps.reduce((sum, s) => sum + (s.totalCapacity || 0), 0),
-        averageCapacity: seatmaps.length > 0 
-          ? seatmaps.reduce((sum, s) => sum + (s.totalCapacity || 0), 0) / seatmaps.length 
+        averageCapacity: seatmaps.length > 0
+          ? seatmaps.reduce((sum, s) => sum + (s.totalCapacity || 0), 0) / seatmaps.length
           : 0,
         types: [...new Set(seatmaps.map(s => s.type).filter(Boolean))],
         sections: seatmaps.reduce((total, s) => total + (s.sections?.length || 0), 0)
       };
-      
+
       return stats;
     } catch (error) {
       throw new Error(`Failed to get seatmap stats: ${error.message}`);
@@ -205,15 +207,15 @@ class SeatmapsController {
       const seatmapsRef = db.collection(this.parentCollection)
         .doc(venueId)
         .collection(this.subcollection);
-      
+
       const snapshot = await seatmapsRef.get();
       const seatmaps = docsToObjects(snapshot.docs);
-      
+
       // Find seatmap that contains the section
-      const seatmap = seatmaps.find(s => 
+      const seatmap = seatmaps.find(s =>
         s.sections?.some(section => section.name === sectionName)
       );
-      
+
       return seatmap;
     } catch (error) {
       throw new Error(`Failed to get seatmap by section: ${error.message}`);
@@ -224,16 +226,16 @@ class SeatmapsController {
   async getSeatmapCapacityBySection(venueId, sectionName) {
     try {
       const seatmap = await this.getSeatmapBySection(venueId, sectionName);
-      
+
       if (!seatmap || !seatmap.sections) {
         return { capacity: 0, available: 0, occupied: 0 };
       }
-      
+
       const section = seatmap.sections.find(s => s.name === sectionName);
       if (!section) {
         return { capacity: 0, available: 0, occupied: 0 };
       }
-      
+
       return {
         capacity: section.capacity || 0,
         available: section.available || section.capacity || 0,
@@ -248,36 +250,36 @@ class SeatmapsController {
   async updateSeatAvailability(venueId, seatmapId, sectionName, seatNumber, isAvailable) {
     try {
       const seatmap = await this.getSeatmapById(venueId, seatmapId);
-      
+
       if (!seatmap || !seatmap.sections) {
         throw new Error('Seatmap or sections not found');
       }
-      
+
       const sectionIndex = seatmap.sections.findIndex(s => s.name === sectionName);
       if (sectionIndex === -1) {
         throw new Error('Section not found');
       }
-      
+
       // Update the seat availability
       const updatedSections = [...seatmap.sections];
       if (!updatedSections[sectionIndex].seats) {
         updatedSections[sectionIndex].seats = {};
       }
-      
+
       updatedSections[sectionIndex].seats[seatNumber] = {
         ...updatedSections[sectionIndex].seats[seatNumber],
         available: isAvailable,
         updatedAt: new Date()
       };
-      
+
       // Recalculate section availability
       const totalSeats = Object.keys(updatedSections[sectionIndex].seats).length;
       const availableSeats = Object.values(updatedSections[sectionIndex].seats)
         .filter(seat => seat.available).length;
-      
+
       updatedSections[sectionIndex].available = availableSeats;
       updatedSections[sectionIndex].capacity = totalSeats;
-      
+
       // Update the seatmap
       return await this.updateSeatmap(venueId, seatmapId, { sections: updatedSections });
     } catch (error) {
@@ -290,24 +292,24 @@ class SeatmapsController {
     try {
       const venuesRef = db.collection(this.parentCollection);
       const venuesSnapshot = await venuesRef.get();
-      
+
       let allSeatmaps = [];
-      
+
       for (const venueDoc of venuesSnapshot.docs) {
         const seatmapsRef = venueDoc.ref.collection(this.subcollection);
         const seatmapsSnapshot = await seatmapsRef.get();
         const seatmaps = docsToObjects(seatmapsSnapshot.docs);
-        
+
         // Add venue info to each seatmap
         const seatmapsWithVenue = seatmaps.map(seatmap => ({
           ...seatmap,
           venueId: venueDoc.id,
           venueName: venueDoc.data().name
         }));
-        
+
         allSeatmaps = allSeatmaps.concat(seatmapsWithVenue);
       }
-      
+
       // Apply filters
       if (filters.status) {
         allSeatmaps = allSeatmaps.filter(s => s.status === filters.status);
@@ -315,11 +317,11 @@ class SeatmapsController {
       if (filters.type) {
         allSeatmaps = allSeatmaps.filter(s => s.type === filters.type);
       }
-      
+
       if (pagination.limit || pagination.offset) {
         return applyPagination(allSeatmaps, pagination.limit, pagination.offset);
       }
-      
+
       return allSeatmaps;
     } catch (error) {
       throw new Error(`Failed to get all seatmaps across venues: ${error.message}`);

@@ -21,16 +21,16 @@ router.post("/:venueId/seatmaps", async (req, res) => {
 
     // Validate required fields
     if (!name || !layout) {
-      return res.status(400).json({ 
-        error: "name and layout are required" 
+      return res.status(400).json({
+        error: "name and layout are required"
       });
     }
 
     // Check if venue exists
     const venue = await VenuesController.getVenueById(venueId);
     if (!venue) {
-      return res.status(404).json({ 
-        error: 'Venue not found' 
+      return res.status(404).json({
+        error: 'Venue not found'
       });
     }
 
@@ -57,9 +57,9 @@ router.post("/:venueId/seatmaps", async (req, res) => {
 
   } catch (error) {
     console.error('Seatmap creation error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create seatmap',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -68,27 +68,27 @@ router.post("/:venueId/seatmaps", async (req, res) => {
 router.get("/:venueId/seatmaps", async (req, res) => {
   try {
     const { venueId } = req.params;
-    const { 
+    const {
       name,
-      limit = 100, 
-      offset = 0 
+      limit = 100,
+      offset = 0
     } = req.query;
-    
+
     // Check if venue exists
     const venue = await VenuesController.getVenueById(venueId);
     if (!venue) {
-      return res.status(404).json({ 
-        error: 'Venue not found' 
+      return res.status(404).json({
+        error: 'Venue not found'
       });
     }
-    
+
     const seatmaps = await SeatmapsController.getAllSeatmaps(venueId, { name });
-    
+
     // Apply pagination
     const startIndex = parseInt(offset);
     const endIndex = startIndex + parseInt(limit);
     const paginatedSeatmaps = seatmaps.slice(startIndex, endIndex);
-    
+
     res.json({
       success: true,
       venueId,
@@ -103,9 +103,9 @@ router.get("/:venueId/seatmaps", async (req, res) => {
 
   } catch (error) {
     console.error('Seatmaps retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve seatmaps',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -114,20 +114,20 @@ router.get("/:venueId/seatmaps", async (req, res) => {
 router.get("/:venueId/seatmaps/:seatmapId", async (req, res) => {
   try {
     const { venueId, seatmapId } = req.params;
-    
+
     // Check if venue exists
     const venue = await VenuesController.getVenueById(venueId);
     if (!venue) {
-      return res.status(404).json({ 
-        error: 'Venue not found' 
+      return res.status(404).json({
+        error: 'Venue not found'
       });
     }
-    
+
     const seatmap = await SeatmapsController.getSeatmapById(venueId, seatmapId);
-    
+
     if (!seatmap) {
-      return res.status(404).json({ 
-        error: 'Seatmap not found' 
+      return res.status(404).json({
+        error: 'Seatmap not found'
       });
     }
 
@@ -138,9 +138,9 @@ router.get("/:venueId/seatmaps/:seatmapId", async (req, res) => {
 
   } catch (error) {
     console.error('Seatmap retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve seatmap',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -160,16 +160,16 @@ router.put("/:venueId/seatmaps/:seatmapId", async (req, res) => {
     // Check if venue exists
     const venue = await VenuesController.getVenueById(venueId);
     if (!venue) {
-      return res.status(404).json({ 
-        error: 'Venue not found' 
+      return res.status(404).json({
+        error: 'Venue not found'
       });
     }
 
     // Check if seatmap exists
     const existingSeatmap = await SeatmapsController.getSeatmapById(venueId, seatmapId);
     if (!existingSeatmap) {
-      return res.status(404).json({ 
-        error: 'Seatmap not found' 
+      return res.status(404).json({
+        error: 'Seatmap not found'
       });
     }
 
@@ -193,9 +193,9 @@ router.put("/:venueId/seatmaps/:seatmapId", async (req, res) => {
 
   } catch (error) {
     console.error('Seatmap update error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to update seatmap',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -209,16 +209,16 @@ router.patch("/:venueId/seatmaps/:seatmapId", async (req, res) => {
     // Check if venue exists
     const venue = await VenuesController.getVenueById(venueId);
     if (!venue) {
-      return res.status(404).json({ 
-        error: 'Venue not found' 
+      return res.status(404).json({
+        error: 'Venue not found'
       });
     }
 
     // Check if seatmap exists
     const existingSeatmap = await SeatmapsController.getSeatmapById(venueId, seatmapId);
     if (!existingSeatmap) {
-      return res.status(404).json({ 
-        error: 'Seatmap not found' 
+      return res.status(404).json({
+        error: 'Seatmap not found'
       });
     }
 
@@ -242,9 +242,9 @@ router.patch("/:venueId/seatmaps/:seatmapId", async (req, res) => {
 
   } catch (error) {
     console.error('Seatmap patch error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to update seatmap',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -253,20 +253,20 @@ router.patch("/:venueId/seatmaps/:seatmapId", async (req, res) => {
 router.delete("/:venueId/seatmaps/:seatmapId", async (req, res) => {
   try {
     const { venueId, seatmapId } = req.params;
-    
+
     // Check if venue exists
     const venue = await VenuesController.getVenueById(venueId);
     if (!venue) {
-      return res.status(404).json({ 
-        error: 'Venue not found' 
+      return res.status(404).json({
+        error: 'Venue not found'
       });
     }
 
     // Check if seatmap exists
     const existingSeatmap = await SeatmapsController.getSeatmapById(venueId, seatmapId);
     if (!existingSeatmap) {
-      return res.status(404).json({ 
-        error: 'Seatmap not found' 
+      return res.status(404).json({
+        error: 'Seatmap not found'
       });
     }
 
@@ -279,9 +279,9 @@ router.delete("/:venueId/seatmaps/:seatmapId", async (req, res) => {
 
   } catch (error) {
     console.error('Seatmap deletion error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to delete seatmap',
-      message: error.message 
+      message: error.message
     });
   }
 });

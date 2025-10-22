@@ -12,7 +12,7 @@ router.get("/accounts", async (req, res) => {
   try {
     // Get all theaters from local database
     const theaters = await VenuesController.getAllVenues();
-    
+
     const dashboardData = {
       summary: {
         totalTheaters: theaters.length,
@@ -52,7 +52,7 @@ router.get("/accounts", async (req, res) => {
       try {
         // Get detailed account information from Stripe
         const account = await stripe.accounts.retrieve(theater.stripeAccountId);
-        
+
         // Get account balance
         let balance = null;
         try {
@@ -131,7 +131,7 @@ router.get("/accounts", async (req, res) => {
 
       } catch (accountError) {
         console.error(`Error retrieving account ${theater.stripeAccountId}:`, accountError.message);
-        
+
         // Add account with error status
         dashboardData.accounts.push({
           theaterId: theater.id,
@@ -160,9 +160,9 @@ router.get("/accounts", async (req, res) => {
 
   } catch (error) {
     console.error('Dashboard data retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve dashboard data',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -171,11 +171,11 @@ router.get("/accounts", async (req, res) => {
 router.get("/accounts/:theaterId", async (req, res) => {
   try {
     const { theaterId } = req.params;
-    
+
     // Get theater from local database
     const theaters = await VenuesController.getAllVenues();
     const theater = theaters.find(t => t.id === theaterId);
-    
+
     if (!theater) {
       return res.status(404).json({ error: 'Theater not found' });
     }
@@ -201,7 +201,7 @@ router.get("/accounts/:theaterId", async (req, res) => {
 
     // Get detailed account information from Stripe
     const account = await stripe.accounts.retrieve(theater.stripeAccountId);
-    
+
     // Get account balance
     let balance = null;
     try {
@@ -261,9 +261,9 @@ router.get("/accounts/:theaterId", async (req, res) => {
 
   } catch (error) {
     console.error('Account details retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve account details',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -272,7 +272,7 @@ router.get("/accounts/:theaterId", async (req, res) => {
 router.get("/products", async (req, res) => {
   try {
     const { limit = 100, active = true } = req.query;
-    
+
     const products = await stripe.products.list({
       limit: parseInt(limit),
       active: active === 'true'
@@ -285,7 +285,7 @@ router.get("/products", async (req, res) => {
           product: product.id,
           limit: 10
         });
-        
+
         return {
           id: product.id,
           name: product.name,
@@ -322,9 +322,9 @@ router.get("/products", async (req, res) => {
 
   } catch (error) {
     console.error('Products retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve products',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -333,16 +333,16 @@ router.get("/products", async (req, res) => {
 router.get("/payments", async (req, res) => {
   try {
     const { limit = 100, created_after, created_before } = req.query;
-    
+
     const params = {
       limit: parseInt(limit)
     };
-    
+
     if (created_after) params.created = { gte: parseInt(created_after) };
     if (created_before) params.created = { ...params.created, lte: parseInt(created_before) };
 
     const charges = await stripe.charges.list(params);
-    
+
     if (!charges || !charges.data) {
       return res.json({
         summary: {
@@ -405,9 +405,9 @@ router.get("/payments", async (req, res) => {
 
   } catch (error) {
     console.error('Payments retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve payments',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -416,11 +416,11 @@ router.get("/payments", async (req, res) => {
 router.get("/customers", async (req, res) => {
   try {
     const { limit = 100, email } = req.query;
-    
+
     const params = {
       limit: parseInt(limit)
     };
-    
+
     if (email) params.email = email;
 
     const customers = await stripe.customers.list(params);
@@ -454,9 +454,9 @@ router.get("/customers", async (req, res) => {
 
   } catch (error) {
     console.error('Customers retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve customers',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -465,11 +465,11 @@ router.get("/customers", async (req, res) => {
 router.get("/subscriptions", async (req, res) => {
   try {
     const { limit = 100, status, customer } = req.query;
-    
+
     const params = {
       limit: parseInt(limit)
     };
-    
+
     if (status) params.status = status;
     if (customer) params.customer = customer;
 
@@ -524,9 +524,9 @@ router.get("/subscriptions", async (req, res) => {
 
   } catch (error) {
     console.error('Subscriptions retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve subscriptions',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -546,7 +546,7 @@ router.get("/overview", async (req, res) => {
       (async () => {
         const theaters = await VenuesController.getAllVenues();
         const accounts = [];
-        
+
         for (const theater of theaters) {
           if (!theater.stripeAccountId) {
             accounts.push({
@@ -581,19 +581,19 @@ router.get("/overview", async (req, res) => {
             });
           }
         }
-        
+
         return accounts;
       })(),
-      
+
       // Get products
       stripe.products.list({ limit: 50, active: true }),
-      
+
       // Get recent payments
       stripe.charges.list({ limit: 50 }),
-      
+
       // Get customers
       stripe.customers.list({ limit: 50 }),
-      
+
       // Get subscriptions
       stripe.subscriptions.list({ limit: 50 })
     ]);
@@ -639,9 +639,9 @@ router.get("/overview", async (req, res) => {
 
   } catch (error) {
     console.error('Overview data retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve overview data',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -651,7 +651,7 @@ router.get("/connected-accounts/:accountId/products", async (req, res) => {
   try {
     const { accountId } = req.params;
     const { limit = 100, active = true } = req.query;
-    
+
     const products = await stripe.products.list({
       limit: parseInt(limit),
       active: active === 'true'
@@ -668,7 +668,7 @@ router.get("/connected-accounts/:accountId/products", async (req, res) => {
         }, {
           stripeAccount: accountId
         });
-        
+
         return {
           id: product.id,
           name: product.name,
@@ -706,9 +706,9 @@ router.get("/connected-accounts/:accountId/products", async (req, res) => {
 
   } catch (error) {
     console.error('Connected account products retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve products for connected account',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -718,18 +718,18 @@ router.get("/connected-accounts/:accountId/payments", async (req, res) => {
   try {
     const { accountId } = req.params;
     const { limit = 100, created_after, created_before } = req.query;
-    
+
     const params = {
       limit: parseInt(limit)
     };
-    
+
     if (created_after) params.created = { gte: parseInt(created_after) };
     if (created_before) params.created = { ...params.created, lte: parseInt(created_before) };
 
     const charges = await stripe.charges.list(params, {
       stripeAccount: accountId
     });
-    
+
     if (!charges || !charges.data) {
       return res.json({
         accountId,
@@ -794,9 +794,9 @@ router.get("/connected-accounts/:accountId/payments", async (req, res) => {
 
   } catch (error) {
     console.error('Connected account payments retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve payments for connected account',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -806,11 +806,11 @@ router.get("/connected-accounts/:accountId/customers", async (req, res) => {
   try {
     const { accountId } = req.params;
     const { limit = 100, email } = req.query;
-    
+
     const params = {
       limit: parseInt(limit)
     };
-    
+
     if (email) params.email = email;
 
     const customers = await stripe.customers.list(params, {
@@ -847,9 +847,9 @@ router.get("/connected-accounts/:accountId/customers", async (req, res) => {
 
   } catch (error) {
     console.error('Connected account customers retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve customers for connected account',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -859,11 +859,11 @@ router.get("/connected-accounts/:accountId/subscriptions", async (req, res) => {
   try {
     const { accountId } = req.params;
     const { limit = 100, status, customer } = req.query;
-    
+
     const params = {
       limit: parseInt(limit)
     };
-    
+
     if (status) params.status = status;
     if (customer) params.customer = customer;
 
@@ -921,9 +921,9 @@ router.get("/connected-accounts/:accountId/subscriptions", async (req, res) => {
 
   } catch (error) {
     console.error('Connected account subscriptions retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve subscriptions for connected account',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -932,7 +932,7 @@ router.get("/connected-accounts/:accountId/subscriptions", async (req, res) => {
 router.get("/connected-accounts/:accountId/overview", async (req, res) => {
   try {
     const { accountId } = req.params;
-    
+
     // Get all data in parallel for better performance
     const [
       accountData,
@@ -943,16 +943,16 @@ router.get("/connected-accounts/:accountId/overview", async (req, res) => {
     ] = await Promise.all([
       // Get account information
       stripe.accounts.retrieve(accountId),
-      
+
       // Get products
       stripe.products.list({ limit: 50, active: true }, { stripeAccount: accountId }),
-      
+
       // Get recent payments
       stripe.charges.list({ limit: 50 }, { stripeAccount: accountId }),
-      
+
       // Get customers
       stripe.customers.list({ limit: 50 }, { stripeAccount: accountId }),
-      
+
       // Get subscriptions
       stripe.subscriptions.list({ limit: 50 }, { stripeAccount: accountId })
     ]);
@@ -1001,9 +1001,9 @@ router.get("/connected-accounts/:accountId/overview", async (req, res) => {
 
   } catch (error) {
     console.error('Connected account overview retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve overview for connected account',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -1011,17 +1011,17 @@ router.get("/connected-accounts/:accountId/overview", async (req, res) => {
 // Create a new product in main Stripe account
 router.post("/products", async (req, res) => {
   try {
-    const { 
-      name, 
-      description, 
-      images, 
-      metadata, 
-      type, 
-      unit_label, 
+    const {
+      name,
+      description,
+      images,
+      metadata,
+      type,
+      unit_label,
       url,
       default_price_data
     } = req.body;
-    
+
     if (!name) {
       return res.status(400).json({ error: "Product name is required" });
     }
@@ -1037,7 +1037,7 @@ router.post("/products", async (req, res) => {
     // Add type only if no default_price_data is provided
     if (!default_price_data) {
       productData.type = type || 'good';
-      
+
       // Only add unit_label for service type products
       if (type === 'service' && unit_label) {
         productData.unit_label = unit_label;
@@ -1081,9 +1081,9 @@ router.post("/products", async (req, res) => {
 
   } catch (error) {
     console.error('Product creation error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create product',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -1092,17 +1092,17 @@ router.post("/products", async (req, res) => {
 router.post("/connected-accounts/:accountId/products", async (req, res) => {
   try {
     const { accountId } = req.params;
-    const { 
-      name, 
-      description, 
-      images, 
-      metadata, 
-      type, 
-      unit_label, 
+    const {
+      name,
+      description,
+      images,
+      metadata,
+      type,
+      unit_label,
       url,
       default_price_data
     } = req.body;
-    
+
     if (!name) {
       return res.status(400).json({ error: "Product name is required" });
     }
@@ -1118,7 +1118,7 @@ router.post("/connected-accounts/:accountId/products", async (req, res) => {
     // Add type only if no default_price_data is provided
     if (!default_price_data) {
       productData.type = type || 'good';
-      
+
       // Only add unit_label for service type products
       if (type === 'service' && unit_label) {
         productData.unit_label = unit_label;
@@ -1165,9 +1165,9 @@ router.post("/connected-accounts/:accountId/products", async (req, res) => {
 
   } catch (error) {
     console.error('Connected account product creation error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create product for connected account',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -1176,11 +1176,11 @@ router.post("/connected-accounts/:accountId/products", async (req, res) => {
 router.post("/products/:productId/prices", async (req, res) => {
   try {
     const { productId } = req.params;
-    const { 
-      unit_amount, 
-      currency = 'usd', 
-      recurring, 
-      metadata, 
+    const {
+      unit_amount,
+      currency = 'usd',
+      recurring,
+      metadata,
       active = true,
       nickname,
       tax_behavior,
@@ -1189,7 +1189,7 @@ router.post("/products/:productId/prices", async (req, res) => {
       transform_quantity,
       lookup_key
     } = req.body;
-    
+
     if (!unit_amount) {
       return res.status(400).json({ error: "Unit amount is required" });
     }
@@ -1232,9 +1232,9 @@ router.post("/products/:productId/prices", async (req, res) => {
 
   } catch (error) {
     console.error('Price creation error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create price',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -1243,11 +1243,11 @@ router.post("/products/:productId/prices", async (req, res) => {
 router.post("/connected-accounts/:accountId/products/:productId/prices", async (req, res) => {
   try {
     const { accountId, productId } = req.params;
-    const { 
-      unit_amount, 
-      currency = 'usd', 
-      recurring, 
-      metadata, 
+    const {
+      unit_amount,
+      currency = 'usd',
+      recurring,
+      metadata,
       active = true,
       nickname,
       tax_behavior,
@@ -1256,7 +1256,7 @@ router.post("/connected-accounts/:accountId/products/:productId/prices", async (
       transform_quantity,
       lookup_key
     } = req.body;
-    
+
     if (!unit_amount) {
       return res.status(400).json({ error: "Unit amount is required" });
     }
@@ -1302,9 +1302,9 @@ router.post("/connected-accounts/:accountId/products/:productId/prices", async (
 
   } catch (error) {
     console.error('Connected account price creation error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create price for connected account',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -1345,9 +1345,9 @@ router.put("/products/:productId", async (req, res) => {
 
   } catch (error) {
     console.error('Product update error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to update product',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -1391,9 +1391,9 @@ router.put("/connected-accounts/:accountId/products/:productId", async (req, res
 
   } catch (error) {
     console.error('Connected account product update error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to update product for connected account',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -1413,9 +1413,9 @@ router.delete("/products/:productId", async (req, res) => {
 
   } catch (error) {
     console.error('Product deletion error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to delete product',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -1438,9 +1438,9 @@ router.delete("/connected-accounts/:accountId/products/:productId", async (req, 
 
   } catch (error) {
     console.error('Connected account product deletion error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to delete product for connected account',
-      message: error.message 
+      message: error.message
     });
   }
 });
