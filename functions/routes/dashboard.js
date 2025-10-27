@@ -1,14 +1,14 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const Stripe = require("stripe");
-const { VenuesController } = require("../controllers");
+const Stripe = require('stripe');
+const { VenuesController } = require('../controllers');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-06-20",
+  apiVersion: '2024-06-20',
 });
 
 // Get all connected accounts dashboard data
-router.get("/accounts", async (req, res) => {
+router.get('/accounts', async (req, res) => {
   try {
     // Get all theaters from local database
     const theaters = await VenuesController.getAllVenues();
@@ -168,7 +168,7 @@ router.get("/accounts", async (req, res) => {
 });
 
 // Get specific account details
-router.get("/accounts/:theaterId", async (req, res) => {
+router.get('/accounts/:theaterId', async (req, res) => {
   try {
     const { theaterId } = req.params;
 
@@ -269,7 +269,7 @@ router.get("/accounts/:theaterId", async (req, res) => {
 });
 
 // Get all products from Stripe
-router.get("/products", async (req, res) => {
+router.get('/products', async (req, res) => {
   try {
     const { limit = 100, active = true } = req.query;
 
@@ -330,7 +330,7 @@ router.get("/products", async (req, res) => {
 });
 
 // Get all payments/charges from Stripe
-router.get("/payments", async (req, res) => {
+router.get('/payments', async (req, res) => {
   try {
     const { limit = 100, created_after, created_before } = req.query;
 
@@ -413,7 +413,7 @@ router.get("/payments", async (req, res) => {
 });
 
 // Get all customers from Stripe
-router.get("/customers", async (req, res) => {
+router.get('/customers', async (req, res) => {
   try {
     const { limit = 100, email } = req.query;
 
@@ -462,7 +462,7 @@ router.get("/customers", async (req, res) => {
 });
 
 // Get all subscriptions from Stripe
-router.get("/subscriptions", async (req, res) => {
+router.get('/subscriptions', async (req, res) => {
   try {
     const { limit = 100, status, customer } = req.query;
 
@@ -532,7 +532,7 @@ router.get("/subscriptions", async (req, res) => {
 });
 
 // Get comprehensive dashboard data including all Stripe data
-router.get("/overview", async (req, res) => {
+router.get('/overview', async (req, res) => {
   try {
     // Get all data in parallel for better performance
     const [
@@ -647,7 +647,7 @@ router.get("/overview", async (req, res) => {
 });
 
 // Get products from a specific connected account
-router.get("/connected-accounts/:accountId/products", async (req, res) => {
+router.get('/connected-accounts/:accountId/products', async (req, res) => {
   try {
     const { accountId } = req.params;
     const { limit = 100, active = true } = req.query;
@@ -714,7 +714,7 @@ router.get("/connected-accounts/:accountId/products", async (req, res) => {
 });
 
 // Get payments from a specific connected account
-router.get("/connected-accounts/:accountId/payments", async (req, res) => {
+router.get('/connected-accounts/:accountId/payments', async (req, res) => {
   try {
     const { accountId } = req.params;
     const { limit = 100, created_after, created_before } = req.query;
@@ -802,7 +802,7 @@ router.get("/connected-accounts/:accountId/payments", async (req, res) => {
 });
 
 // Get customers from a specific connected account
-router.get("/connected-accounts/:accountId/customers", async (req, res) => {
+router.get('/connected-accounts/:accountId/customers', async (req, res) => {
   try {
     const { accountId } = req.params;
     const { limit = 100, email } = req.query;
@@ -855,7 +855,7 @@ router.get("/connected-accounts/:accountId/customers", async (req, res) => {
 });
 
 // Get subscriptions from a specific connected account
-router.get("/connected-accounts/:accountId/subscriptions", async (req, res) => {
+router.get('/connected-accounts/:accountId/subscriptions', async (req, res) => {
   try {
     const { accountId } = req.params;
     const { limit = 100, status, customer } = req.query;
@@ -929,7 +929,7 @@ router.get("/connected-accounts/:accountId/subscriptions", async (req, res) => {
 });
 
 // Get comprehensive data from a specific connected account
-router.get("/connected-accounts/:accountId/overview", async (req, res) => {
+router.get('/connected-accounts/:accountId/overview', async (req, res) => {
   try {
     const { accountId } = req.params;
 
@@ -1009,7 +1009,7 @@ router.get("/connected-accounts/:accountId/overview", async (req, res) => {
 });
 
 // Create a new product in main Stripe account
-router.post("/products", async (req, res) => {
+router.post('/products', async (req, res) => {
   try {
     const {
       name,
@@ -1023,7 +1023,7 @@ router.post("/products", async (req, res) => {
     } = req.body;
 
     if (!name) {
-      return res.status(400).json({ error: "Product name is required" });
+      return res.status(400).json({ error: 'Product name is required' });
     }
 
     const productData = {
@@ -1089,7 +1089,7 @@ router.post("/products", async (req, res) => {
 });
 
 // Create a new product in a specific connected account
-router.post("/connected-accounts/:accountId/products", async (req, res) => {
+router.post('/connected-accounts/:accountId/products', async (req, res) => {
   try {
     const { accountId } = req.params;
     const {
@@ -1104,7 +1104,7 @@ router.post("/connected-accounts/:accountId/products", async (req, res) => {
     } = req.body;
 
     if (!name) {
-      return res.status(400).json({ error: "Product name is required" });
+      return res.status(400).json({ error: 'Product name is required' });
     }
 
     const productData = {
@@ -1173,7 +1173,7 @@ router.post("/connected-accounts/:accountId/products", async (req, res) => {
 });
 
 // Create a price for a product in main Stripe account
-router.post("/products/:productId/prices", async (req, res) => {
+router.post('/products/:productId/prices', async (req, res) => {
   try {
     const { productId } = req.params;
     const {
@@ -1191,7 +1191,7 @@ router.post("/products/:productId/prices", async (req, res) => {
     } = req.body;
 
     if (!unit_amount) {
-      return res.status(400).json({ error: "Unit amount is required" });
+      return res.status(400).json({ error: 'Unit amount is required' });
     }
 
     const price = await stripe.prices.create({
@@ -1240,7 +1240,7 @@ router.post("/products/:productId/prices", async (req, res) => {
 });
 
 // Create a price for a product in a specific connected account
-router.post("/connected-accounts/:accountId/products/:productId/prices", async (req, res) => {
+router.post('/connected-accounts/:accountId/products/:productId/prices', async (req, res) => {
   try {
     const { accountId, productId } = req.params;
     const {
@@ -1258,7 +1258,7 @@ router.post("/connected-accounts/:accountId/products/:productId/prices", async (
     } = req.body;
 
     if (!unit_amount) {
-      return res.status(400).json({ error: "Unit amount is required" });
+      return res.status(400).json({ error: 'Unit amount is required' });
     }
 
     const price = await stripe.prices.create({
@@ -1310,7 +1310,7 @@ router.post("/connected-accounts/:accountId/products/:productId/prices", async (
 });
 
 // Update a product in main Stripe account
-router.put("/products/:productId", async (req, res) => {
+router.put('/products/:productId', async (req, res) => {
   try {
     const { productId } = req.params;
     const { name, description, images, metadata, unit_label, url, active } = req.body;
@@ -1353,7 +1353,7 @@ router.put("/products/:productId", async (req, res) => {
 });
 
 // Update a product in a specific connected account
-router.put("/connected-accounts/:accountId/products/:productId", async (req, res) => {
+router.put('/connected-accounts/:accountId/products/:productId', async (req, res) => {
   try {
     const { accountId, productId } = req.params;
     const { name, description, images, metadata, unit_label, url, active } = req.body;
@@ -1399,7 +1399,7 @@ router.put("/connected-accounts/:accountId/products/:productId", async (req, res
 });
 
 // Delete a product in main Stripe account
-router.delete("/products/:productId", async (req, res) => {
+router.delete('/products/:productId', async (req, res) => {
   try {
     const { productId } = req.params;
 
@@ -1421,7 +1421,7 @@ router.delete("/products/:productId", async (req, res) => {
 });
 
 // Delete a product in a specific connected account
-router.delete("/connected-accounts/:accountId/products/:productId", async (req, res) => {
+router.delete('/connected-accounts/:accountId/products/:productId', async (req, res) => {
   try {
     const { accountId, productId } = req.params;
 

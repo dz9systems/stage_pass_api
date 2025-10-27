@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Stripe = require("stripe");
 const crypto = require("crypto");
-const { VenuesController } = require("../controllers");
+const { UsersController } = require("../controllers");
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
 });
@@ -17,7 +17,7 @@ router.get("/oauth/start", (req, res) => {
     response_type: "code",
     client_id: process.env.STRIPE_CLIENT_ID,
     scope: "read_write",
-    redirect_uri: `${process.env.API_BASE_URL}/connect/standard/oauth/callback`,
+    redirect_uri: `${process.env.APP_BASE_URL}/connect/standard/oauth/callback`,
     state,
   });
 
@@ -38,9 +38,8 @@ router.get("/oauth/callback", async (req, res) => {
       code,
     });
 
-    await VenuesController.upsertVenue({
+    await UsersController.upsertUser({
       id: theaterId,
-      name: `Theater ${theaterId}`,
       stripeAccountId: token.stripe_user_id, // acct_...
       accountType: "standard",
     });

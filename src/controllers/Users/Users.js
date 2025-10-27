@@ -8,9 +8,15 @@ class UsersController {
   // Create or update a user
   async upsertUser(user) {
     try {
-      const userData = addTimestamps(user, !!user.id);
-      const userRef = db.collection(this.collection).doc(user.id);
+      console.log('🔍 upsertUser input:', user);
+      const { id, ...userDataWithoutId } = user;
+      console.log('🔍 extracted id:', id);
+      console.log('🔍 userDataWithoutId:', userDataWithoutId);
+      const userData = addTimestamps(userDataWithoutId, !!id);
+      console.log('🔍 userData after timestamps:', userData);
+      const userRef = db.collection(this.collection).doc(id);
       await userRef.set(userData, { merge: true });
+      console.log('🔍 stored data:', userData);
       return userData;
     } catch (error) {
       throw new Error(`Failed to upsert user: ${error.message}`);

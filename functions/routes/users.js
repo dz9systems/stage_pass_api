@@ -30,9 +30,9 @@ router.post("/", async (req, res) => {
     }
 
     // Validate role
-    if (!['customer', 'seller'].includes(role)) {
+    if (!['customer', 'seller', 'admin'].includes(role)) {
       return res.status(400).json({ 
-        error: "role must be either 'customer' or 'seller'" 
+        error: "role must be either 'customer', 'seller', or 'admin'" 
       });
     }
 
@@ -159,9 +159,9 @@ router.put("/:userId", async (req, res) => {
     }
 
     // Validate role if provided
-    if (role && !['customer', 'seller'].includes(role)) {
+    if (role && !['customer', 'seller', 'admin'].includes(role)) {
       return res.status(400).json({ 
-        error: "role must be either 'customer' or 'seller'" 
+        error: "role must be either 'customer', 'seller', or 'admin'" 
       });
     }
 
@@ -211,9 +211,9 @@ router.patch("/:userId", async (req, res) => {
     }
 
     // Validate role if provided
-    if (updates.role && !['customer', 'seller'].includes(updates.role)) {
+    if (updates.role && !['customer', 'seller', 'admin'].includes(updates.role)) {
       return res.status(400).json({ 
-        error: "role must be either 'customer' or 'seller'" 
+        error: "role must be either 'customer', 'seller', or 'admin'" 
       });
     }
 

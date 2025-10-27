@@ -6,6 +6,7 @@ const OrdersController = require('./Orders/Orders');
 const PerformancesController = require('./Performances/Performances');
 const SeatmapsController = require('./Seatmaps/Seatmaps');
 const TicketsController = require('./Tickets/Tickets');
+const SubscriptionsController = require('./Subscriptions/Subscriptions');
 
 module.exports = {
   UsersController,
@@ -14,5 +15,6 @@ module.exports = {
   OrdersController,
   PerformancesController,
   SeatmapsController,
-  TicketsController
+  TicketsController,
+  SubscriptionsController
 };

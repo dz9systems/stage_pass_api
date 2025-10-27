@@ -27,6 +27,23 @@ class VenuesController {
     }
   }
 
+  // Get venue by Stripe account ID
+  async getVenueByStripeAccountId(stripeAccountId) {
+    try {
+      const venuesRef = db.collection(this.collection);
+      const query = venuesRef.where('stripeAccountId', '==', stripeAccountId);
+      const snapshot = await query.get();
+      
+      if (snapshot.empty) {
+        return null;
+      }
+      
+      return docToObject(snapshot.docs[0]);
+    } catch (error) {
+      throw new Error(`Failed to get venue by Stripe account ID: ${error.message}`);
+    }
+  }
+
   // Get all venues with optional filtering and pagination
   async getAllVenues(filters = {}, pagination = {}) {
     try {

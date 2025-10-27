@@ -19,20 +19,23 @@ router.post("/", async (req, res) => {
       venue,
       duration,
       categories = [],
-      status = 'active'
+      status = 'active',
+      startDate,
+      endDate,
+      director
     } = req.body;
 
     // Validate required fields
     if (!title || !description || !sellerId) {
-      return res.status(400).json({ 
-        error: "title, description, and sellerId are required" 
+      return res.status(400).json({
+        error: "title, description, and sellerId are required"
       });
     }
 
     // Validate status
     if (!['active', 'upcoming', 'past', 'draft'].includes(status)) {
-      return res.status(400).json({ 
-        error: "status must be one of: 'active', 'upcoming', 'past', 'draft'" 
+      return res.status(400).json({
+        error: "status must be one of: 'active', 'upcoming', 'past', 'draft'"
       });
     }
 
@@ -50,6 +53,9 @@ router.post("/", async (req, res) => {
       duration: duration || null,
       categories,
       status,
+      startDate: startDate || null,
+      endDate: endDate || null,
+      director: director || null,
       createdAt: now,
       updatedAt: now,
       performances: {} // Initialize empty performances subcollection
@@ -64,9 +70,9 @@ router.post("/", async (req, res) => {
 
   } catch (error) {
     console.error('Production creation error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create production',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -74,21 +80,21 @@ router.post("/", async (req, res) => {
 // READ - Get all productions
 router.get("/", async (req, res) => {
   try {
-    const { 
-      sellerId, 
-      status, 
+    const {
+      sellerId,
+      status,
       category,
-      limit = 100, 
-      offset = 0 
+      limit = 100,
+      offset = 0
     } = req.query;
-    
+
     const productions = await ProductionsController.getAllProductions({ sellerId, status, category });
-    
+   
     // Apply pagination
     const startIndex = parseInt(offset);
     const endIndex = startIndex + parseInt(limit);
     const paginatedProductions = productions.slice(startIndex, endIndex);
-    
+
     res.json({
       success: true,
       productions: paginatedProductions,
@@ -102,9 +108,9 @@ router.get("/", async (req, res) => {
 
   } catch (error) {
     console.error('Productions retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve productions',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -113,12 +119,12 @@ router.get("/", async (req, res) => {
 router.get("/:productionId", async (req, res) => {
   try {
     const { productionId } = req.params;
-    
+
     const production = await ProductionsController.getProductionById(productionId);
-    
+
     if (!production) {
-      return res.status(404).json({ 
-        error: 'Production not found' 
+      return res.status(404).json({
+        error: 'Production not found'
       });
     }
 
@@ -129,9 +135,9 @@ router.get("/:productionId", async (req, res) => {
 
   } catch (error) {
     console.error('Production retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve production',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -141,14 +147,16 @@ router.get("/seller/:sellerId", async (req, res) => {
   try {
     const { sellerId } = req.params;
     const { status, limit = 100, offset = 0 } = req.query;
-    
+
     const productions = await ProductionsController.getProductionsBySellerId(sellerId, { status });
-    
+
+    console.log('Total productions found for seller:', productions);
+
     // Apply pagination
     const startIndex = parseInt(offset);
     const endIndex = startIndex + parseInt(limit);
     const paginatedProductions = productions.slice(startIndex, endIndex);
-    
+
     res.json({
       success: true,
       productions: paginatedProductions,
@@ -162,9 +170,9 @@ router.get("/seller/:sellerId", async (req, res) => {
 
   } catch (error) {
     console.error('Seller productions retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve seller productions',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -182,21 +190,24 @@ router.put("/:productionId", async (req, res) => {
       venue,
       duration,
       categories,
-      status
+      status,
+      startDate,
+      endDate,
+      director
     } = req.body;
 
     // Check if production exists
     const existingProduction = await ProductionsController.getProductionById(productionId);
     if (!existingProduction) {
-      return res.status(404).json({ 
-        error: 'Production not found' 
+      return res.status(404).json({
+        error: 'Production not found'
       });
     }
 
     // Validate status if provided
     if (status && !['active', 'upcoming', 'past', 'draft'].includes(status)) {
-      return res.status(400).json({ 
-        error: "status must be one of: 'active', 'upcoming', 'past', 'draft'" 
+      return res.status(400).json({
+        error: "status must be one of: 'active', 'upcoming', 'past', 'draft'"
       });
     }
 
@@ -212,6 +223,9 @@ router.put("/:productionId", async (req, res) => {
       ...(duration !== undefined && { duration }),
       ...(categories !== undefined && { categories }),
       ...(status !== undefined && { status }),
+      ...(startDate !== undefined && { startDate }),
+      ...(endDate !== undefined && { endDate }),
+      ...(director !== undefined && { director }),
       updatedAt: new Date().toISOString()
     };
 
@@ -224,9 +238,9 @@ router.put("/:productionId", async (req, res) => {
 
   } catch (error) {
     console.error('Production update error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to update production',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -240,15 +254,15 @@ router.patch("/:productionId", async (req, res) => {
     // Check if production exists
     const existingProduction = await ProductionsController.getProductionById(productionId);
     if (!existingProduction) {
-      return res.status(404).json({ 
-        error: 'Production not found' 
+      return res.status(404).json({
+        error: 'Production not found'
       });
     }
 
     // Validate status if provided
     if (updates.status && !['active', 'upcoming', 'past', 'draft'].includes(updates.status)) {
-      return res.status(400).json({ 
-        error: "status must be one of: 'active', 'upcoming', 'past', 'draft'" 
+      return res.status(400).json({
+        error: "status must be one of: 'active', 'upcoming', 'past', 'draft'"
       });
     }
 
@@ -272,9 +286,9 @@ router.patch("/:productionId", async (req, res) => {
 
   } catch (error) {
     console.error('Production patch error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to update production',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -283,12 +297,12 @@ router.patch("/:productionId", async (req, res) => {
 router.delete("/:productionId", async (req, res) => {
   try {
     const { productionId } = req.params;
-    
+
     // Check if production exists
     const existingProduction = await ProductionsController.getProductionById(productionId);
     if (!existingProduction) {
-      return res.status(404).json({ 
-        error: 'Production not found' 
+      return res.status(404).json({
+        error: 'Production not found'
       });
     }
 
@@ -301,9 +315,9 @@ router.delete("/:productionId", async (req, res) => {
 
   } catch (error) {
     console.error('Production deletion error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to delete production',
-      message: error.message 
+      message: error.message
     });
   }
 });

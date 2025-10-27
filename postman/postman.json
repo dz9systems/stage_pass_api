@@ -232,6 +232,85 @@
                 }
               },
               "response": []
+            },
+            {
+              "name": "CREATE STRIPE SUBSCRIPTION",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"planId\": \"professional\",\n  \"paymentMethodId\": \"pm_1abc123def456\",\n  \"customerId\": \"cus_xyz789\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/payments/create-subscription",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["payments", "create-subscription"]
+                },
+                "description": "Create a Stripe subscription for a user. Payment method must be created via Stripe.js first."
+              },
+              "response": []
+            },
+            {
+              "name": "COMPLETE STRIPE SUBSCRIPTION",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"subscriptionId\": \"sub_1abc123def456\",\n  \"userId\": \"{{user_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/payments/complete-subscription",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["payments", "complete-subscription"]
+                },
+                "description": "Complete a subscription after payment is confirmed. Creates local subscription record."
+              },
+              "response": []
+            },
+            {
+              "name": "CANCEL STRIPE SUBSCRIPTION",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"subscriptionId\": \"sub_1abc123def456\",\n  \"userId\": \"{{user_id}}\",\n  \"cancelAtPeriodEnd\": true\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/payments/cancel-subscription",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["payments", "cancel-subscription"]
+                },
+                "description": "Cancel a subscription. Set cancelAtPeriodEnd to false to cancel immediately."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET SUBSCRIPTION STATUS",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/payments/subscription/{{subscription_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["payments", "subscription", "{{subscription_id}}"]
+                },
+                "description": "Get subscription status and details from Stripe"
+              },
+              "response": []
             }
           ]
         }
@@ -693,14 +772,14 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"displayName\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"photoURL\": \"https://example.com/photo.jpg\",\n  \"role\": \"customer\",\n  \"phone\": \"+1234567890\",\n  \"address\": \"123 Main St\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"zipCode\": \"10001\"\n}"
+                  "raw": "{\n  \"displayName\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"photoURL\": \"https://example.com/admin-photo.jpg\",\n  \"role\": \"admin\",\n  \"phone\": \"+1234567890\",\n  \"address\": \"123 Admin St\",\n  \"city\": \"New York\",\n  \"state\": \"NY\",\n  \"zipCode\": \"10001\"\n}"
                 },
                 "url": {
                   "raw": "{{api_base_url}}/api/users",
                   "host": ["{{api_base_url}}"],
                   "path": ["api", "users"]
                 },
-                "description": "Create a new user with displayName, email, and optional fields"
+                "description": "Create a new user with displayName, email, and optional fields. Role can be 'customer', 'seller', or 'admin'"
               },
               "response": []
             }
@@ -994,7 +1073,113 @@
           "name": "READ",
           "item": [
             {
-              "name": "GET ALL PERFORMANCES",
+              "name": "GET ALL PERFORMANCES (GLOBAL)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/performances?status=scheduled&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "performances"],
+                  "query": [
+                    { "key": "status", "value": "scheduled" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all performances across all productions (for performances page)"
+              },
+              "response": []
+            },
+            {
+              "name": "GET PERFORMANCES BY DATE RANGE",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/performances?dateFrom=2025-10-01&dateTo=2025-10-31&limit=100",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "performances"],
+                  "query": [
+                    { "key": "dateFrom", "value": "2025-10-01" },
+                    { "key": "dateTo", "value": "2025-10-31" },
+                    { "key": "limit", "value": "100" }
+                  ]
+                },
+                "description": "Get performances within a date range"
+              },
+              "response": []
+            },
+            {
+              "name": "GET PERFORMANCES BY VENUE",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/performances?venueId={{venue_id}}&status=scheduled",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "performances"],
+                  "query": [
+                    { "key": "venueId", "value": "{{venue_id}}" },
+                    { "key": "status", "value": "scheduled" }
+                  ]
+                },
+                "description": "Get performances for a specific venue"
+              },
+              "response": []
+            },
+            {
+              "name": "GET PERFORMANCES - NO PARAMS",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/performances",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "performances"]
+                },
+                "description": "Get all performances without any filters"
+              },
+              "response": []
+            },
+            {
+              "name": "GET PERFORMANCES - PAGINATION",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/performances?limit=2&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "performances"],
+                  "query": [
+                    { "key": "limit", "value": "2" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get performances with pagination (2 per page)"
+              },
+              "response": []
+            },
+            {
+              "name": "GET PERFORMANCES - SPECIFIC DATE",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/performances?dateFrom=2025-10-04T00:00:00Z&dateTo=2025-10-04T23:59:59Z",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "performances"],
+                  "query": [
+                    { "key": "dateFrom", "value": "2025-10-04T00:00:00Z" },
+                    { "key": "dateTo", "value": "2025-10-04T23:59:59Z" }
+                  ]
+                },
+                "description": "Get performances for a specific date (October 4, 2025)"
+              },
+              "response": []
+            },
+            {
+              "name": "GET ALL PERFORMANCES (BY PRODUCTION)",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -1008,7 +1193,7 @@
                     { "key": "offset", "value": "0" }
                   ]
                 },
-                "description": "Get all performances for a production"
+                "description": "Get all performances for a specific production"
               },
               "response": []
             },
@@ -1131,17 +1316,20 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{api_base_url}}/api/venues?sellerId={{seller_id}}&city=New York&limit=50&offset=0",
+                  "raw": "{{api_base_url}}/api/venues?sellerId={{seller_id}}&city=New York&state=NY&minCapacity=100&maxCapacity=5000&limit=50&offset=0",
                   "host": ["{{api_base_url}}"],
                   "path": ["api", "venues"],
                   "query": [
                     { "key": "sellerId", "value": "{{seller_id}}" },
                     { "key": "city", "value": "New York" },
+                    { "key": "state", "value": "NY" },
+                    { "key": "minCapacity", "value": "100" },
+                    { "key": "maxCapacity", "value": "5000" },
                     { "key": "limit", "value": "50" },
                     { "key": "offset", "value": "0" }
                   ]
                 },
-                "description": "Get all venues with optional filtering and pagination"
+                "description": "Get all venues with optional filtering by seller, location, capacity range, and pagination"
               },
               "response": []
             },
@@ -1165,16 +1353,19 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{api_base_url}}/api/venues/seller/{{seller_id}}?city=New York&limit=50&offset=0",
+                  "raw": "{{api_base_url}}/api/venues/seller/{{seller_id}}?city=New York&state=NY&minCapacity=100&maxCapacity=5000&limit=50&offset=0",
                   "host": ["{{api_base_url}}"],
                   "path": ["api", "venues", "seller", "{{seller_id}}"],
                   "query": [
                     { "key": "city", "value": "New York" },
+                    { "key": "state", "value": "NY" },
+                    { "key": "minCapacity", "value": "100" },
+                    { "key": "maxCapacity", "value": "5000" },
                     { "key": "limit", "value": "50" },
                     { "key": "offset", "value": "0" }
                   ]
                 },
-                "description": "Get all venues for a specific seller"
+                "description": "Get all venues for a specific seller with optional filtering by location and capacity range"
               },
               "response": []
             }
@@ -1478,6 +1669,25 @@
                   ]
                 },
                 "description": "Get all orders for a specific seller"
+              },
+              "response": []
+            },
+            {
+              "name": "GET ORDERS BY USER",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/user/{{user_id}}?status=completed&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "user", "{{user_id}}"],
+                  "query": [
+                    { "key": "status", "value": "completed" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get all orders for a specific user"
               },
               "response": []
             }
@@ -1794,6 +2004,185 @@
       ]
     },
     {
+      "name": "Subscriptions API",
+      "item": [
+        {
+          "name": "READ",
+          "item": [
+            {
+              "name": "GET SUBSCRIPTION PLANS",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/subscriptions/plans",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "subscriptions", "plans"]
+                },
+                "description": "Get all available subscription plans with pricing and features"
+              },
+              "response": []
+            },
+            {
+              "name": "GET SUBSCRIPTION PLAN BY ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/subscriptions/plans/{{plan_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "subscriptions", "plans", "{{plan_id}}"]
+                },
+                "description": "Get a specific subscription plan by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "GET ACTIVE SUBSCRIPTION PLANS",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/subscriptions/plans?isActive=true&limit=50&offset=0",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "subscriptions", "plans"],
+                  "query": [
+                    { "key": "isActive", "value": "true" },
+                    { "key": "limit", "value": "50" },
+                    { "key": "offset", "value": "0" }
+                  ]
+                },
+                "description": "Get only active subscription plans"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "CREATE",
+          "item": [
+            {
+              "name": "CREATE SUBSCRIPTION PLAN",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Premium Plan\",\n  \"price\": 1999,\n  \"ticketLimit\": 5000,\n  \"productionLimit\": 10,\n  \"features\": [\"Advanced seat mapping\", \"Priority support\", \"Analytics dashboard\"],\n  \"isActive\": true,\n  \"stripeProductId\": \"prod_abc123\",\n  \"stripePriceId\": \"price_xyz789\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/subscriptions/plans",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "subscriptions", "plans"]
+                },
+                "description": "Create a new subscription plan"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "UPDATE",
+          "item": [
+            {
+              "name": "UPDATE SUBSCRIPTION PLAN",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Premium Plan\",\n  \"price\": 2499,\n  \"ticketLimit\": 10000,\n  \"productionLimit\": 20,\n  \"features\": [\"Advanced seat mapping\", \"Priority support\", \"Analytics dashboard\", \"Custom branding\"],\n  \"isActive\": true,\n  \"stripeProductId\": \"prod_updated123\",\n  \"stripePriceId\": \"price_updated789\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/subscriptions/plans/{{plan_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "subscriptions", "plans", "{{plan_id}}"]
+                },
+                "description": "Update an existing subscription plan"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DELETE",
+          "item": [
+            {
+              "name": "DELETE SUBSCRIPTION PLAN",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/subscriptions/plans/{{plan_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "subscriptions", "plans", "{{plan_id}}"]
+                },
+                "description": "Delete a subscription plan by ID"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "USER SUBSCRIPTIONS",
+          "item": [
+            {
+              "name": "GET USER SUBSCRIPTION",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/subscriptions/user/{{user_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "subscriptions", "user", "{{user_id}}"]
+                },
+                "description": "Get a user's current subscription details"
+              },
+              "response": []
+            },
+            {
+              "name": "CREATE/UPDATE USER SUBSCRIPTION",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"planId\": \"professional\",\n  \"status\": \"active\",\n  \"currentPeriodStart\": \"2024-01-01T00:00:00Z\",\n  \"currentPeriodEnd\": \"2024-02-01T00:00:00Z\",\n  \"cancelAtPeriodEnd\": false\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/subscriptions/user/{{user_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "subscriptions", "user", "{{user_id}}"]
+                },
+                "description": "Create or update a user's subscription"
+              },
+              "response": []
+            },
+            {
+              "name": "CANCEL USER SUBSCRIPTION",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/subscriptions/user/{{user_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "subscriptions", "user", "{{user_id}}"]
+                },
+                "description": "Cancel a user's subscription"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Tickets API",
       "item": [
         {
@@ -1906,6 +2295,45 @@
           ]
         },
         {
+          "name": "VALIDATE",
+          "item": [
+            {
+              "name": "VALIDATE TICKET",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"validatedBy\": \"staff_member_123\",\n  \"validationLocation\": \"main_entrance\"\n}"
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/{{order_id}}/tickets/{{ticket_id}}/validate",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "{{order_id}}", "tickets", "{{ticket_id}}", "validate"]
+                },
+                "description": "Validate and redeem a ticket for entry"
+              },
+              "response": []
+            },
+            {
+              "name": "GET TICKET VALIDATION STATUS",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/orders/{{order_id}}/tickets/{{ticket_id}}/status",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "orders", "{{order_id}}", "tickets", "{{ticket_id}}", "status"]
+                },
+                "description": "Get validation status and history for a specific ticket"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
           "name": "DELETE",
           "item": [
             {
@@ -1941,6 +2369,8 @@
     { "key": "seatmap_id", "value": "mgcpfxz62vaw2p1nc5y" },
     { "key": "order_id", "value": "order_1234567890" },
     { "key": "ticket_id", "value": "ticket_1234567890" },
-    { "key": "file_id", "value": "file_1234567890" }
+    { "key": "file_id", "value": "file_1234567890" },
+    { "key": "plan_id", "value": "plan_1234567890" },
+    { "key": "subscription_id", "value": "sub_1234567890" }
   ]
 }

@@ -173,7 +173,10 @@ POST /api/productions
   },
   "duration": 165,
   "categories": ["musical", "drama", "historical"],
-  "status": "active"
+  "status": "active",
+  "startDate": "2025-10-25",
+  "endDate": "2025-11-08",
+  "director": "Thomas Kail"
 }
 ```
 

@@ -1,9 +1,37 @@
 const express = require('express');
 const multer = require('multer');
+const mime = require('mime-types');
 const { admin } = require('../firebase');
 const { generateId } = require('../controllers/BaseController');
 
 const router = express.Router();
+
+// Constants
+const ALLOWED_ENTITY_TYPES = new Set(['venues', 'productions', 'users', 'general']);
+
+// Helper functions
+function parseBool(value) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    return value.toLowerCase() === 'true' || value === '1';
+  }
+  return Boolean(value);
+}
+
+function sanitizeSegment(segment) {
+  return segment.replace(/[^a-zA-Z0-9._-]/g, '');
+}
+
+function buildStoragePath({ entityType, entityId, folder, fileId, ext }) {
+  if (entityType && entityId) {
+    return `${entityType}/${entityId}/${fileId}.${ext}`;
+  }
+  return `${folder}/${fileId}.${ext}`;
+}
+
+function shouldAllowOverwrite(req) {
+  return parseBool(req.body.allowOverwrite) || parseBool(req.query.allowOverwrite);
+}
 
 // Configure multer for memory storage
 const upload = multer({
@@ -268,6 +296,81 @@ router.post('/multiple', upload.array('files', 10), async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to upload files',
+      message: error.message
+    });
+  }
+});
+
+// GET /api/upload - List files by entity or folder
+router.get('/', async (req, res) => {
+  try {
+    const { 
+      folder = 'uploads', 
+      entityType, 
+      entityId,
+      limit = 50,
+      offset = 0 
+    } = req.query;
+
+    let prefix = folder;
+    if (entityType && entityId) {
+      prefix = `${entityType}/${entityId}`;
+    }
+
+    const [files] = await bucket.getFiles({
+      prefix,
+      maxResults: parseInt(limit),
+      pageToken: offset > 0 ? `offset-${offset}` : undefined
+    });
+
+    const fileList = await Promise.all(
+      files.map(async (file) => {
+        try {
+          const [metadata] = await file.getMetadata();
+          const [signedUrl] = await file.getSignedUrl({
+            action: 'read',
+            expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+          });
+
+          return {
+            id: file.name.split('/').pop().split('.')[0],
+            name: metadata.metadata?.originalName || file.name.split('/').pop(),
+            fileName: file.name.split('/').pop(),
+            path: file.name,
+            url: signedUrl,
+            size: parseInt(metadata.size),
+            mimeType: metadata.contentType,
+            folder: entityType ? undefined : folder,
+            entityType: entityType || undefined,
+            entityId: entityId || undefined,
+            public: metadata.acl?.some(acl => acl.entity === 'allUsers'),
+            uploadedAt: metadata.metadata?.uploadedAt,
+            uploadedBy: metadata.metadata?.uploadedBy
+          };
+        } catch (error) {
+          console.error(`Error getting metadata for ${file.name}:`, error);
+          return null;
+        }
+      })
+    );
+
+    // Filter out null results
+    const validFiles = fileList.filter(file => file !== null);
+
+    res.json({
+      success: true,
+      files: validFiles,
+      total: validFiles.length,
+      folder,
+      entityType,
+      entityId
+    });
+
+  } catch (error) {
+    console.error('List files error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to list files',
       message: error.message
     });
   }

@@ -2,6 +2,48 @@ const express = require("express");
 const router = express.Router();
 const { PerformancesController, ProductionsController } = require("../controllers");
 
+// READ - Get all performances across all productions (for performances page)
+router.get("/", async (req, res) => {
+  try {
+    const { 
+      status, 
+      dateFrom, 
+      dateTo,
+      productionId,
+      venueId,
+      limit = 100, 
+      offset = 0 
+    } = req.query;
+    
+    const filters = { status, dateFrom, dateTo, venueId };
+    const pagination = { limit: parseInt(limit), offset: parseInt(offset) };
+    
+    const result = await PerformancesController.getAllPerformancesAcrossProductions(filters, pagination);
+    
+    // Handle both paginated and non-paginated responses
+    const performances = result.data || result;
+    const paginationInfo = result.pagination || {
+      total: performances.length,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      hasMore: performances.length === parseInt(limit)
+    };
+    
+    res.json({
+      success: true,
+      performances,
+      pagination: paginationInfo
+    });
+
+  } catch (error) {
+    console.error('All performances retrieval error:', error);
+    res.status(500).json({ 
+      error: 'Failed to retrieve performances',
+      message: error.message 
+    });
+  }
+});
+
 // Generate unique ID
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);

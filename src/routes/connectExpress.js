@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Stripe = require("stripe");
-const { VenuesController } = require("../controllers");
+const { VenuesController, UsersController } = require("../controllers");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
@@ -16,24 +16,24 @@ router.delete("/account", async (req, res) => {
     let targetAccountId = accountId;
     if (!targetAccountId) {
       if (!theaterId) return res.status(400).json({ error: "Provide accountId or theaterId" });
-      const theater = await VenuesController.getVenueById(theaterId);
-      if (!theater?.stripeAccountId)
-        return res.status(404).json({ error: "Theater or Stripe account not found" });
-      targetAccountId = theater.stripeAccountId;
+
+      const seller = await UsersController.getUserById(theaterId);
+      if (!seller?.stripeAccountId)
+        return res.status(404).json({ error: "Seller not connected to Stripe" });
+      targetAccountId = seller.stripeAccountId;
     }
 
     const deleted = await stripe.accounts.del(targetAccountId);
 
     // Best effort: clear local mapping when theaterId provided
     if (theaterId) {
-      await VenuesController.upsertVenue({
+      await UsersController.upsertUser({
         id: theaterId,
-        name: `Theater ${theaterId}`,
         stripeAccountId: null,
         accountType: null,
       });
     }
-
+    console.log('deleted::', deleted);
     res.json(deleted);
   } catch (e) {
     console.error(e);
@@ -56,9 +56,9 @@ router.post("/create-account", async (req, res) => {
       business_profile: name ? { name } : undefined,
     });
 
-    await upsertTheater({
+    // Update the user (theaterId = sellerId = userId) with Stripe account info
+    await UsersController.upsertUser({
       id: theaterId,
-      name: name || `Theater ${theaterId}`,
       stripeAccountId: account.id,
       accountType: "express",
     });
@@ -95,15 +95,21 @@ router.get("/status", async (req, res) => {
     const { theaterId } = req.query;
     if (!theaterId) return res.status(400).json({ error: "Missing theaterId" });
 
-    const theater = await getTheaterById(theaterId);
-    if (!theater?.stripeAccountId)
-      return res.status(404).json({ error: "Theater not found" });
+    const seller = await UsersController.getUserById(theaterId);
+    if (!seller?.stripeAccountId)
+      return res.status(404).json({ error: "Seller not connected to Stripe" });
 
-    const acct = await stripe.accounts.retrieve(theater.stripeAccountId);
+    const acct = await stripe.accounts.retrieve(seller.stripeAccountId);
     res.json({
       ready: acct.charges_enabled && acct.details_submitted,
       charges_enabled: acct.charges_enabled,
       details_submitted: acct.details_submitted,
+      requirements: acct.requirements,
+      payouts_enabled: acct.payouts_enabled,
+      currently_due: acct.requirements?.currently_due || [],
+      eventually_due: acct.requirements?.eventually_due || [],
+      past_due: acct.requirements?.past_due || [],
+      disabled_reason: acct.requirements?.disabled_reason,
     });
   } catch (e) {
     console.error(e);
@@ -117,11 +123,11 @@ router.post("/login-link", async (req, res) => {
     const { theaterId } = req.body;
     if (!theaterId) return res.status(400).json({ error: "Missing theaterId" });
 
-    const theater = await getTheaterById(theaterId);
-    if (!theater?.stripeAccountId)
-      return res.status(404).json({ error: "Theater not found" });
+    const seller = await UsersController.getUserById(theaterId);
+    if (!seller?.stripeAccountId)
+      return res.status(404).json({ error: "Seller not connected to Stripe" });
 
-    const login = await stripe.accounts.createLoginLink(theater.stripeAccountId);
+    const login = await stripe.accounts.createLoginLink(seller.stripeAccountId);
     res.json({ url: login.url });
   } catch (e) {
     console.error(e);
@@ -159,6 +165,17 @@ router.delete("/accounts/all", async (req, res) => {
     for (const account of expressAccounts) {
       try {
         await stripe.accounts.del(account.id);
+
+        // Clear local user records for this account
+        const users = await UsersController.getAllUsers();
+        const userWithAccount = users.find(user => user.stripeAccountId === account.id);
+        if (userWithAccount) {
+          await UsersController.upsertUser({
+            id: userWithAccount.id,
+            stripeAccountId: null,
+            accountType: null,
+          });
+        }
 
         results.deletedCount++;
         results.deletedAccounts.push({

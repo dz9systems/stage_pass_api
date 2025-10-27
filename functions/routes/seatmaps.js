@@ -156,7 +156,6 @@ router.put("/:venueId/seatmaps/:seatmapId", async (req, res) => {
       rows,
       seats
     } = req.body;
-
     // Check if venue exists
     const venue = await VenuesController.getVenueById(venueId);
     if (!venue) {

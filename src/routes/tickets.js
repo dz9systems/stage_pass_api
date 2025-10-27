@@ -7,6 +7,77 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
+// VALIDATE - Validate and redeem a ticket
+router.post("/:orderId/tickets/:ticketId/validate", async (req, res) => {
+  try {
+    const { orderId, ticketId } = req.params;
+    const { validatedBy, validationLocation } = req.body;
+
+    // Validate the ticket
+    const validationResult = await TicketsController.validateTicket(orderId, ticketId);
+    
+    // Add validation metadata
+    const updateData = {
+      validatedBy: validatedBy || 'system',
+      validationLocation: validationLocation || 'unknown',
+      validatedAt: new Date().toISOString()
+    };
+    
+    await TicketsController.updateTicket(orderId, ticketId, updateData);
+
+    res.json({
+      success: true,
+      message: "Ticket validated successfully",
+      validation: validationResult
+    });
+
+  } catch (error) {
+    console.error('Ticket validation error:', error);
+    res.status(400).json({ 
+      success: false,
+      error: 'Ticket validation failed',
+      message: error.message 
+    });
+  }
+});
+
+// GET - Get ticket validation status
+router.get("/:orderId/tickets/:ticketId/status", async (req, res) => {
+  try {
+    const { orderId, ticketId } = req.params;
+    
+    const ticket = await TicketsController.getTicketById(orderId, ticketId);
+    
+    if (!ticket) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Ticket not found' 
+      });
+    }
+
+    res.json({
+      success: true,
+      ticket: {
+        id: ticket.id,
+        status: ticket.status,
+        qrCode: ticket.qrCode,
+        qrCodeGenerated: ticket.qrCodeGenerated || false,
+        validatedAt: ticket.validatedAt,
+        validatedBy: ticket.validatedBy,
+        validationLocation: ticket.validationLocation
+      }
+    });
+
+  } catch (error) {
+    console.error('Get ticket status error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to get ticket status',
+      message: error.message 
+    });
+  }
+});
+
 // CREATE - Create a new ticket for an order
 router.post("/:orderId/tickets", async (req, res) => {
   try {
