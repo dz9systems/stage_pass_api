@@ -5,7 +5,6 @@
   "scripts": {
     "start": "nodemon src/index.js",
     "dev": "nodemon src/index.js",
-    "setup-firebase": "node setup-firebase.js",
     "test-firebase": "node test-firebase.js",
     "firebase:emulators": "firebase emulators:start",
     "firebase:deploy": "firebase deploy --only functions",
