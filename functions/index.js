@@ -1,4 +1,7 @@
+/* eslint-disable max-len */
+/* eslint-disable quotes */
 require("dotenv").config();
+const functions = require("firebase-functions");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser"); // use raw for webhooks, json for everything else
@@ -7,7 +10,7 @@ const bodyParser = require("body-parser"); // use raw for webhooks, json for eve
 const connectExpressRouter = require("./routes/connectExpress.js");
 const connectStandardRouter = require("./routes/connectStandard");
 const paymentsRouter = require("./routes/payments");
-const webhooksRouter = require("./routes/webhooks"); 
+const webhooksRouter = require("./routes/webhooks");
 const stripeDataRouter = require("./routes/dashboard");
 
 // New CRUD route modules
@@ -22,14 +25,13 @@ const uploadRouter = require("./routes/upload");
 const subscriptionsRouter = require("./routes/subscriptions");
 
 const app = express();
-const port = process.env.PORT || 4242;
 
 // CORS
 const corsOptions = {
   origin: ["http://localhost:5173","http://127.0.0.1:5173","https://stage-pass-b1d9b.web.app","https://project-theatre-ticketing-system-with-crm-integration-440.magicpatterns.app"],
   credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"],
+  allowedHeaders: ["Content-Type","Authorization"]
 };
 app.use(cors(corsOptions));
 
@@ -57,8 +59,11 @@ app.use("/api/orders", ticketsRouter); // tickets are subcollection of orders
 app.use("/api/upload", uploadRouter);
 app.use("/api/subscriptions", subscriptionsRouter);
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server listening on ${port}`);
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+// Export as Firebase Function
+exports.api = functions.https.onRequest(app);
 
