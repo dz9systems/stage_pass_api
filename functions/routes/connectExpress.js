@@ -3,9 +3,28 @@ const router = express.Router();
 const Stripe = require("stripe");
 const { VenuesController, UsersController } = require("../controllers");
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-06-20",
-});
+// Initialize Stripe with proper error handling
+let stripe;
+try {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2024-06-20",
+  });
+} catch (error) {
+  console.error("Failed to initialize Stripe:", error.message);
+  // Create a mock Stripe instance for development
+  stripe = {
+    accounts: {
+      create: () => Promise.reject(new Error("Stripe not configured")),
+      retrieve: () => Promise.reject(new Error("Stripe not configured")),
+      del: () => Promise.reject(new Error("Stripe not configured")),
+      list: () => Promise.reject(new Error("Stripe not configured")),
+      createLoginLink: () => Promise.reject(new Error("Stripe not configured")),
+    },
+    accountLinks: {
+      create: () => Promise.reject(new Error("Stripe not configured")),
+    }
+  };
+}
 
 // Delete a connected account (accepts accountId or theaterId)
 router.delete("/account", async (req, res) => {

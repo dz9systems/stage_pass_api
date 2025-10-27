@@ -3,9 +3,22 @@ const router = express.Router();
 const Stripe = require('stripe');
 const { VenuesController } = require('../controllers');
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-06-20',
-});
+// Initialize Stripe with proper error handling
+let stripe;
+try {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2024-06-20',
+  });
+} catch (error) {
+  console.error("Failed to initialize Stripe:", error.message);
+  // Create a mock Stripe instance for development
+  stripe = {
+    accounts: {
+      retrieve: () => Promise.reject(new Error("Stripe not configured")),
+      list: () => Promise.reject(new Error("Stripe not configured")),
+    }
+  };
+}
 
 // Get all connected accounts dashboard data
 router.get('/accounts', async (req, res) => {

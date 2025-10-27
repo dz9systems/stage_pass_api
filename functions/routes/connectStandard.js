@@ -3,9 +3,25 @@ const router = express.Router();
 const Stripe = require("stripe");
 const crypto = require("crypto");
 const { UsersController } = require("../controllers");
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-06-20",
-});
+
+// Initialize Stripe with proper error handling
+let stripe;
+try {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2024-06-20",
+  });
+} catch (error) {
+  console.error("Failed to initialize Stripe:", error.message);
+  // Create a mock Stripe instance for development
+  stripe = {
+    oauth: {
+      token: () => Promise.reject(new Error("Stripe not configured")),
+    },
+    accounts: {
+      retrieve: () => Promise.reject(new Error("Stripe not configured")),
+    }
+  };
+}
 
 // Start OAuth (redirect to Stripe). Include theaterId in state.
 router.get("/oauth/start", (req, res) => {

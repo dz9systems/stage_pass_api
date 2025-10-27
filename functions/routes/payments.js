@@ -2,9 +2,27 @@ const express = require("express");
 const router = express.Router();
 const Stripe = require("stripe");
 const { VenuesController, UsersController, SubscriptionsController } = require("../controllers");
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-06-20",
-});
+
+// Initialize Stripe with proper error handling
+let stripe;
+try {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: "2024-06-20",
+  });
+} catch (error) {
+  console.error("Failed to initialize Stripe:", error.message);
+  // Create a mock Stripe instance for development
+  stripe = {
+    paymentIntents: {
+      create: () => Promise.reject(new Error("Stripe not configured")),
+      retrieve: () => Promise.reject(new Error("Stripe not configured")),
+      confirm: () => Promise.reject(new Error("Stripe not configured")),
+    },
+    accounts: {
+      retrieve: () => Promise.reject(new Error("Stripe not configured")),
+    }
+  };
+}
 
 // Create PaymentIntent on the connected account (Direct charge)
 router.post("/create-intent", async (req, res) => {
