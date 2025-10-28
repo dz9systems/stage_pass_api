@@ -466,7 +466,7 @@ router.get('/customers', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Customers retrieval error:', error);
+    console.error('Customers retrieval error::', error);
     res.status(500).json({
       error: 'Failed to retrieve customers',
       message: error.message
