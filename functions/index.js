@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 /* eslint-disable quotes */
 require("dotenv").config();
-const functions = require("firebase-functions");
+const { onRequest } = require("firebase-functions/v2/https");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser"); // use raw for webhooks, json for everything else
@@ -64,6 +64,10 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Export as Firebase Function
-exports.api = functions.https.onRequest(app);
+// Export as Firebase Function (Gen 2)
+exports.api = onRequest({
+  timeoutSeconds: 540,
+  memory: "512MiB",
+  maxInstances: 20
+}, app);
 
