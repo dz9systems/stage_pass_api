@@ -13,11 +13,12 @@ router.get("/oauth/start", (req, res) => {
   if (!theaterId) return res.status(400).send("Missing theaterId");
 
   const state = JSON.stringify({ theaterId, nonce: crypto.randomUUID() });
+  const baseUrl = process.env.API_BASE_URL?.replace(/\/$/, '') || '';
   const params = new URLSearchParams({
     response_type: "code",
     client_id: process.env.STRIPE_CLIENT_ID,
     scope: "read_write",
-    redirect_uri: `${process.env.API_BASE_URL}/connect/standard/oauth/callback`,
+    redirect_uri: `${baseUrl}/connect/standard/oauth/callback`,
     state,
   });
 
