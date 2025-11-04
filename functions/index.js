@@ -28,12 +28,14 @@ const app = express();
 
 // CORS
 const corsOptions = {
-  origin: ["http://localhost:5173","http://127.0.0.1:5173","https://stage-pass-b1d9b.web.app","https://project-theatre-ticketing-system-with-crm-integration-440.magicpatterns.app"],
+  origin: ["http://localhost:5173","http://127.0.0.1:5173","https://www.stagepasspro.com","https://stage-pass-b1d9b.web.app","https://project-theatre-ticketing-system-with-crm-integration-440.magicpatterns.app"],
   credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"]
+  allowedHeaders: ["Content-Type","Authorization"],
 };
 app.use(cors(corsOptions));
+
+
 
 // --- Webhooks MUST be mounted before JSON parsing ---
 app.use("/webhooks", bodyParser.raw({ type: "application/json" }), webhooksRouter);
