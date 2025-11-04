@@ -7,7 +7,7 @@ const bodyParser = require("body-parser"); // use raw for webhooks, json for eve
 const connectExpressRouter = require("./routes/connectExpress.js");
 const connectStandardRouter = require("./routes/connectStandard");
 const paymentsRouter = require("./routes/payments");
-const webhooksRouter = require("./routes/webhooks"); 
+const webhooksRouter = require("./routes/webhooks");
 const stripeDataRouter = require("./routes/dashboard");
 
 // New CRUD route modules
@@ -26,7 +26,7 @@ const port = process.env.PORT || 4242;
 
 // CORS
 const corsOptions = {
-  origin: ["http://localhost:5173","http://127.0.0.1:5173","https://stage-pass-b1d9b.web.app","https://project-theatre-ticketing-system-with-crm-integration-440.magicpatterns.app"],
+  origin: ["http://localhost:5173","http://127.0.0.1:5173","https://www.stagepasspro.com","https://stage-pass-b1d9b.web.app","https://project-theatre-ticketing-system-with-crm-integration-440.magicpatterns.app"],
   credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"],
