@@ -13,12 +13,23 @@ if (!admin.apps.length) {
       storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "stage-pass-b1d9b.firebasestorage.app"
     });
   } else {
-    // For local development, you can use the Firebase emulator
-    // or set GOOGLE_APPLICATION_CREDENTIALS environment variable
-    admin.initializeApp({
-      projectId: process.env.FIREBASE_PROJECT_ID || "stage-pass-b1d9b",
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "stage-pass-b1d9b.firebasestorage.app"
-    });
+    // Try to use Application Default Credentials (GOOGLE_APPLICATION_CREDENTIALS)
+    // or gcloud auth application-default login credentials
+    try {
+      admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+        projectId: process.env.FIREBASE_PROJECT_ID || "stage-pass-b1d9b",
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "stage-pass-b1d9b.firebasestorage.app"
+      });
+    } catch (error) {
+      // Fallback: Initialize without credentials (for emulator or if credentials are not needed)
+      console.warn('Warning: Firebase Admin initialized without credentials. Signed URLs may not work.');
+      console.warn('Set FIREBASE_SERVICE_ACCOUNT_KEY or GOOGLE_APPLICATION_CREDENTIALS for full functionality.');
+      admin.initializeApp({
+        projectId: process.env.FIREBASE_PROJECT_ID || "stage-pass-b1d9b",
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "stage-pass-b1d9b.firebasestorage.app"
+      });
+    }
   }
 }
 

@@ -1,6 +1,18 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // NEW STRUCTURE: User-specific image storage
+    // users/{userId}/venue_images/{venueId}/{fileName}
+    // users/{userId}/production_images/{productionId}/{fileName}
+    // users/{userId}/settings_images/avatar.{ext}
+    match /users/{userId}/{allPaths=**} {
+      // Public read for all user images
+      allow read: if true;
+      // Write only if authenticated user matches the userId in path
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // LEGACY STRUCTURE: Keep for backward compatibility
     // Allow authenticated users to upload files
     match /uploads/{allPaths=**} {
       allow read, write: if request.auth != null;
@@ -12,19 +24,19 @@ service firebase.storage {
       allow write: if request.auth != null;
     }
     
-    // Production images - public read, authenticated write
+    // Production images - public read, authenticated write (legacy)
     match /productions/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null;
     }
     
-    // User avatars - public read, authenticated write
+    // User avatars - public read, authenticated write (legacy)
     match /avatars/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null;
     }
     
-    // Venue images - public read, authenticated write
+    // Venue images - public read, authenticated write (legacy)
     match /venues/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null;

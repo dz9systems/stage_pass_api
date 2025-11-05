@@ -1954,6 +1954,159 @@
                 "description": "Upload multiple files to Firebase Storage (up to 10 files)"
               },
               "response": []
+            },
+            {
+              "name": "UPLOAD VENUE IMAGE (NEW STRUCTURE)",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "Venue image file"
+                    },
+                    {
+                      "key": "category",
+                      "value": "venue_images",
+                      "type": "text",
+                      "description": "Category: venue_images, production_images, or settings_images"
+                    },
+                    {
+                      "key": "userId",
+                      "value": "{{user_id}}",
+                      "type": "text",
+                      "description": "User ID (required)"
+                    },
+                    {
+                      "key": "relatedEntityId",
+                      "value": "{{venue_id}}",
+                      "type": "text",
+                      "description": "Venue ID (required for venue_images)"
+                    },
+                    {
+                      "key": "fileName",
+                      "value": "banner.jpg",
+                      "type": "text",
+                      "description": "Filename from frontend (required for venue_images)"
+                    },
+                    {
+                      "key": "isPublic",
+                      "value": "true",
+                      "type": "text",
+                      "description": "Whether to make the file public (true/false)"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/upload",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "upload"]
+                },
+                "description": "Upload a venue image with new structure: users/{userId}/venue_images/{venueId}/{fileName}"
+              },
+              "response": []
+            },
+            {
+              "name": "UPLOAD PRODUCTION IMAGE (NEW STRUCTURE)",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "Production image file"
+                    },
+                    {
+                      "key": "category",
+                      "value": "production_images",
+                      "type": "text",
+                      "description": "Category: venue_images, production_images, or settings_images"
+                    },
+                    {
+                      "key": "userId",
+                      "value": "{{user_id}}",
+                      "type": "text",
+                      "description": "User ID (required)"
+                    },
+                    {
+                      "key": "relatedEntityId",
+                      "value": "{{production_id}}",
+                      "type": "text",
+                      "description": "Production ID (required for production_images)"
+                    },
+                    {
+                      "key": "fileName",
+                      "value": "poster.png",
+                      "type": "text",
+                      "description": "Filename from frontend (required for production_images)"
+                    },
+                    {
+                      "key": "isPublic",
+                      "value": "true",
+                      "type": "text",
+                      "description": "Whether to make the file public (true/false)"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/upload",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "upload"]
+                },
+                "description": "Upload a production image with new structure: users/{userId}/production_images/{productionId}/{fileName}"
+              },
+              "response": []
+            },
+            {
+              "name": "UPLOAD SETTINGS IMAGE (AVATAR)",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "Avatar/profile image file"
+                    },
+                    {
+                      "key": "category",
+                      "value": "settings_images",
+                      "type": "text",
+                      "description": "Category: settings_images (uses fixed filename avatar.{ext})"
+                    },
+                    {
+                      "key": "userId",
+                      "value": "{{user_id}}",
+                      "type": "text",
+                      "description": "User ID (required)"
+                    },
+                    {
+                      "key": "isPublic",
+                      "value": "true",
+                      "type": "text",
+                      "description": "Whether to make the file public (true/false)"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{api_base_url}}/api/upload",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "upload"]
+                },
+                "description": "Upload user avatar with new structure: users/{userId}/settings_images/avatar.{ext} (always overwrites existing avatar)"
+              },
+              "response": []
             }
           ]
         },

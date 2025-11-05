@@ -8,6 +8,7 @@ const router = express.Router();
 
 // Constants
 const ALLOWED_ENTITY_TYPES = new Set(['venues', 'productions', 'users', 'general']);
+const ALLOWED_CATEGORIES = new Set(['venue_images', 'production_images', 'settings_images']);
 
 // Helper functions
 function parseBool(value) {
@@ -22,7 +23,26 @@ function sanitizeSegment(segment) {
   return segment.replace(/[^a-zA-Z0-9._-]/g, '');
 }
 
-function buildStoragePath({ entityType, entityId, folder, fileId, ext }) {
+function buildStoragePath({ entityType, entityId, folder, fileId, ext, category, userId, relatedEntityId, fileName }) {
+  // New structure: users/{userId}/{category}/{relatedEntityId if needed}/{fileName}
+  if (category && userId) {
+    const sanitizedUserId = sanitizeSegment(userId);
+    const sanitizedCategory = sanitizeSegment(category);
+
+    if (category === 'settings_images') {
+      // Fixed filename for settings_images: avatar.{ext}
+      return `users/${sanitizedUserId}/${sanitizedCategory}/avatar.${ext}`;
+    } else if (relatedEntityId && fileName) {
+      // venue_images or production_images with relatedEntityId and fileName
+      const sanitizedRelatedId = sanitizeSegment(relatedEntityId);
+      const sanitizedFileName = sanitizeSegment(fileName);
+      // Ensure fileName has extension, if not use provided ext
+      const finalFileName = sanitizedFileName.includes('.') ? sanitizedFileName : `${sanitizedFileName}.${ext}`;
+      return `users/${sanitizedUserId}/${sanitizedCategory}/${sanitizedRelatedId}/${finalFileName}`;
+    }
+  }
+
+  // Legacy structure: entityType/entityId/fileId.ext or folder/fileId.ext
   if (entityType && entityId) {
     return `${entityType}/${entityId}/${fileId}.${ext}`;
   }
@@ -84,21 +104,76 @@ router.post('/', upload.single('file'), async (req, res) => {
     const file = req.file;
     const {
       folder = 'uploads',
-      isPublic: isPublicRaw = false,
+      isPublic: isPublicRaw,
       entityType: entityTypeRaw = 'general', // 'venues', 'productions', 'users', 'general'
       entityId: entityIdRaw = null,
+      // New parameters for user image structure
+      category: categoryRaw = null,
+      userId: userIdRaw = null,
+      relatedEntityId: relatedEntityIdRaw = null,
+      fileName: fileNameRaw = null
     } = req.body;
 
-    const isPublic = parseBool(isPublicRaw);
     const entityType = entityTypeRaw || 'general';
     const entityId = entityIdRaw || null;
+    const category = categoryRaw || null;
+    const userId = userIdRaw || null;
+    const relatedEntityId = relatedEntityIdRaw || null;
+    const fileName = fileNameRaw || null;
 
-    // Validate entity type to avoid arbitrary path writes
-    if (!ALLOWED_ENTITY_TYPES.has(entityType)) {
-      return res.status(400).json({ success: false, error: 'Invalid entityType' });
+    // Determine if using new structure
+    const usingNewStructure = category && userId;
+
+    // For new structure (user images), default to public if not explicitly set
+    // Images are meant to be publicly accessible (storage rules allow public read)
+    let isPublic;
+    if (usingNewStructure) {
+      // If isPublicRaw is explicitly provided (not null/undefined/empty), use it
+      // Otherwise default to true for user images
+      if (isPublicRaw !== null && isPublicRaw !== undefined && isPublicRaw !== '') {
+        isPublic = parseBool(isPublicRaw);
+      } else {
+        // Default to public for user images if not specified
+        isPublic = true;
+      }
+    } else {
+      // Legacy structure: default to false if not specified
+      isPublic = parseBool(isPublicRaw);
     }
 
-    // Generate a stable internal id for tracking (even if we use entityId for filename)
+    // Validate category if using new structure
+    if (usingNewStructure) {
+      if (!ALLOWED_CATEGORIES.has(category)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid category: allowed=venue_images,production_images,settings_images'
+        });
+      }
+
+      // Validate required fields based on category
+      if (category === 'venue_images' || category === 'production_images') {
+        if (!relatedEntityId) {
+          return res.status(400).json({
+            success: false,
+            error: `relatedEntityId is required for ${category}`
+          });
+        }
+        if (!fileName) {
+          return res.status(400).json({
+            success: false,
+            error: `fileName is required for ${category}`
+          });
+        }
+      }
+      // settings_images doesn't require relatedEntityId or fileName (uses fixed name)
+    } else {
+      // Legacy structure validation
+      if (!ALLOWED_ENTITY_TYPES.has(entityType)) {
+        return res.status(400).json({ success: false, error: 'Invalid entityType' });
+      }
+    }
+
+    // Generate a stable internal id for tracking
     const internalId = generateId();
 
     // Derive extension: prefer original name; fall back to mimetype
@@ -106,30 +181,58 @@ router.post('/', upload.single('file'), async (req, res) => {
     const mimeExt = mime.extension(file.mimetype) || '';
     const ext = sanitizeSegment((origExt || mimeExt || 'bin').toLowerCase());
 
+    // Build file path based on structure
     const filePath = buildStoragePath({
       entityType: entityId ? entityType : null,
       entityId: entityId || null,
       folder,
       fileId: internalId,
       ext,
+      category,
+      userId,
+      relatedEntityId,
+      fileName,
     });
 
     const gcsFile = bucket.file(filePath);
 
-    // Guard against overwrite if using entityId path
-    if (entityId && !shouldAllowOverwrite(req)) {
-      const [exists] = await gcsFile.exists();
-      if (exists) {
-        return res.status(409).json({
-          success: false,
-          error: 'File already exists for this entity. Set allowOverwrite=true to replace.',
-          path: filePath,
-        });
+    // Handle overwrite logic
+    if (usingNewStructure) {
+      // For settings_images, always allow overwrite (single file per user)
+      if (category === 'settings_images') {
+        // No check needed, will overwrite
+      } else {
+        // For venue_images and production_images, allow overwrite by default
+        // but check if file exists and allowOverwrite is false
+        if (!shouldAllowOverwrite(req)) {
+          const [exists] = await gcsFile.exists();
+          if (exists) {
+            return res.status(409).json({
+              success: false,
+              error: 'File already exists. Set allowOverwrite=true to replace.',
+              path: filePath,
+            });
+          }
+        }
+      }
+    } else {
+      // Legacy: Guard against overwrite if using entityId path
+      if (entityId && !shouldAllowOverwrite(req)) {
+        const [exists] = await gcsFile.exists();
+        if (exists) {
+          return res.status(409).json({
+            success: false,
+            error: 'File already exists for this entity. Set allowOverwrite=true to replace.',
+            path: filePath,
+          });
+        }
       }
     }
 
     // Helpful headers
-    const cacheControl = isPublic ? 'public, max-age=31536000, immutable' : 'private, max-age=0, no-cache';
+    const cacheControl = isPublic
+      ? 'public, max-age=31536000, immutable'
+      : 'private, max-age=0, no-cache';
     const contentDisposition = `inline; filename="${file.originalname.replace(/"/g, '')}"`;
 
     // Save buffer (simpler than manual createWriteStream)
@@ -142,9 +245,11 @@ router.post('/', upload.single('file'), async (req, res) => {
         metadata: {
           originalName: file.originalname,
           uploadedAt: new Date().toISOString(),
-          uploadedBy: (req.user?.uid || req.body.userId || 'anonymous'),
-          entityType,
-          entityId: entityId || '',
+          uploadedBy: (req.user?.uid || userId || req.body.userId || 'anonymous'),
+          entityType: usingNewStructure ? 'users' : entityType,
+          entityId: usingNewStructure ? userId : (entityId || ''),
+          category: category || '',
+          relatedEntityId: relatedEntityId || '',
           internalId,
         },
       },
@@ -160,27 +265,37 @@ router.post('/', upload.single('file'), async (req, res) => {
     if (isPublic) {
       url = `https://storage.googleapis.com/${bucket.name}/${encodeURI(filePath)}`;
     } else {
-      const [signedUrl] = await gcsFile.getSignedUrl({
-        version: 'v4',
-        action: 'read',
-        expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
-      url = signedUrl;
+      try {
+        const [signedUrl] = await gcsFile.getSignedUrl({
+          version: 'v4',
+          action: 'read',
+          expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+        url = signedUrl;
+      } catch (signError) {
+        console.error('Error generating signed URL:', signError.message);
+        // Fallback to public URL if signed URL generation fails
+        // In production, you should ensure credentials are properly configured
+        url = `https://storage.googleapis.com/${bucket.name}/${encodeURI(filePath)}`;
+        console.warn('Using public URL as fallback. Configure Firebase credentials for private file access.');
+      }
     }
 
     return res.json({
       success: true,
       file: {
         id: internalId, // always present and traceable
-        entityId: entityId || null,
-        entityType,
+        entityId: usingNewStructure ? userId : (entityId || null),
+        entityType: usingNewStructure ? 'users' : entityType,
+        category: category || null,
+        relatedEntityId: relatedEntityId || null,
         originalName: file.originalname,
         fileName: filePath.split('/').pop(),
         path: filePath,
         url,
         size: file.size,
         mimeType: file.mimetype,
-        folder: entityId ? undefined : folder, // folder only relevant for non-entity uploads
+        folder: usingNewStructure ? undefined : (entityId ? undefined : folder), // folder only relevant for non-entity uploads
         public: isPublic,
         uploadedAt: new Date().toISOString(),
       },
@@ -304,12 +419,12 @@ router.post('/multiple', upload.array('files', 10), async (req, res) => {
 // GET /api/upload - List files by entity or folder
 router.get('/', async (req, res) => {
   try {
-    const { 
-      folder = 'uploads', 
-      entityType, 
+    const {
+      folder = 'uploads',
+      entityType,
       entityId,
       limit = 50,
-      offset = 0 
+      offset = 0
     } = req.query;
 
     let prefix = folder;
@@ -327,10 +442,20 @@ router.get('/', async (req, res) => {
       files.map(async (file) => {
         try {
           const [metadata] = await file.getMetadata();
-          const [signedUrl] = await file.getSignedUrl({
-            action: 'read',
-            expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
-          });
+          let signedUrl;
+          try {
+            [signedUrl] = await file.getSignedUrl({
+              action: 'read',
+              expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+          } catch (signError) {
+            console.error(`Error generating signed URL for ${file.name}:`, signError.message);
+            // Fallback to public URL if available
+            const isPublic = metadata.acl?.some(acl => acl.entity === 'allUsers');
+            signedUrl = isPublic 
+              ? `https://storage.googleapis.com/${bucket.name}/${encodeURI(file.name)}`
+              : null;
+          }
 
           return {
             id: file.name.split('/').pop().split('.')[0],
@@ -394,10 +519,26 @@ router.get('/:fileId', async (req, res) => {
     }
 
     const [metadata] = await file.getMetadata();
-    const [signedUrl] = await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    let signedUrl;
+    try {
+      [signedUrl] = await file.getSignedUrl({
+        action: 'read',
+        expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+    } catch (signError) {
+      console.error('Error generating signed URL:', signError.message);
+      // Fallback to public URL if available
+      const isPublic = metadata.acl?.some(acl => acl.entity === 'allUsers');
+      signedUrl = isPublic 
+        ? `https://storage.googleapis.com/${bucket.name}/${encodeURI(filePath)}`
+        : null;
+      if (!signedUrl) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to generate file URL. Configure Firebase credentials for private file access.'
+        });
+      }
+    }
 
     res.json({
       success: true,
