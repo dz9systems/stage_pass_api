@@ -61,6 +61,12 @@ APP_BASE_URL=http://localhost:5173
 
 # Server Configuration
 PORT=4242
+
+# Email (SendGrid)
+SENDGRID_API_KEY=SG.YourKeyHere
+SENDGRID_FROM_EMAIL=no-reply@yourdomain.com
+# Optional: set EU data residency for regional subusers
+# SENDGRID_DATA_RESIDENCY=eu
 ```
 
 ### Firebase Setup

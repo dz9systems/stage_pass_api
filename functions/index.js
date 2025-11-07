@@ -23,6 +23,7 @@ const ordersRouter = require("./routes/orders");
 const ticketsRouter = require("./routes/tickets");
 const uploadRouter = require("./routes/upload");
 const subscriptionsRouter = require("./routes/subscriptions");
+const emailsRouter = require("./routes/emails");
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.use("/api/orders", ordersRouter);
 app.use("/api/orders", ticketsRouter); // tickets are subcollection of orders
 app.use("/api/upload", uploadRouter);
 app.use("/api/subscriptions", subscriptionsRouter);
+app.use("/api/emails", emailsRouter);
 
 // Health check endpoint
 app.get("/health", (req, res) => {

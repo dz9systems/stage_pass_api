@@ -67,6 +67,34 @@ router.post("/plans", async (req, res) => {
       return res.status(400).json({ error: "Features must be an array" });
     }
     
+    // Clean up stripePriceId if it's a JSON string
+    let cleanedStripePriceId = stripePriceId;
+    if (cleanedStripePriceId && typeof cleanedStripePriceId === 'string') {
+      try {
+        const parsed = JSON.parse(cleanedStripePriceId);
+        if (typeof parsed === 'string') {
+          cleanedStripePriceId = parsed;
+        }
+      } catch (e) {
+        // Not JSON, just remove surrounding quotes if present
+        cleanedStripePriceId = cleanedStripePriceId.replace(/^["']|["']$/g, '');
+      }
+    }
+
+    // Clean up stripeProductId if it's a JSON string
+    let cleanedStripeProductId = stripeProductId;
+    if (cleanedStripeProductId && typeof cleanedStripeProductId === 'string') {
+      try {
+        const parsed = JSON.parse(cleanedStripeProductId);
+        if (typeof parsed === 'string') {
+          cleanedStripeProductId = parsed;
+        }
+      } catch (e) {
+        // Not JSON, just remove surrounding quotes if present
+        cleanedStripeProductId = cleanedStripeProductId.replace(/^["']|["']$/g, '');
+      }
+    }
+
     // Create new plan (Firebase will auto-generate ID)
     const newPlan = {
       name: name.trim(),
@@ -75,8 +103,8 @@ router.post("/plans", async (req, res) => {
       productionLimit: productionLimit === 0 ? -1 : parseInt(productionLimit),
       features: features.filter(f => f.trim() !== ''),
       isActive: Boolean(isActive),
-      ...(stripeProductId && { stripeProductId }),
-      ...(stripePriceId && { stripePriceId })
+      ...(cleanedStripeProductId && { stripeProductId: cleanedStripeProductId }),
+      ...(cleanedStripePriceId && { stripePriceId: cleanedStripePriceId })
     };
     
     const createdPlan = await SubscriptionsController.createSubscriptionPlan(newPlan);
@@ -116,6 +144,34 @@ router.put("/plans/:planId", async (req, res) => {
       return res.status(400).json({ error: "Features must be an array" });
     }
     
+    // Clean up stripePriceId if it's a JSON string
+    let cleanedStripePriceId = stripePriceId;
+    if (cleanedStripePriceId && typeof cleanedStripePriceId === 'string') {
+      try {
+        const parsed = JSON.parse(cleanedStripePriceId);
+        if (typeof parsed === 'string') {
+          cleanedStripePriceId = parsed;
+        }
+      } catch (e) {
+        // Not JSON, just remove surrounding quotes if present
+        cleanedStripePriceId = cleanedStripePriceId.replace(/^["']|["']$/g, '');
+      }
+    }
+
+    // Clean up stripeProductId if it's a JSON string
+    let cleanedStripeProductId = stripeProductId;
+    if (cleanedStripeProductId && typeof cleanedStripeProductId === 'string') {
+      try {
+        const parsed = JSON.parse(cleanedStripeProductId);
+        if (typeof parsed === 'string') {
+          cleanedStripeProductId = parsed;
+        }
+      } catch (e) {
+        // Not JSON, just remove surrounding quotes if present
+        cleanedStripeProductId = cleanedStripeProductId.replace(/^["']|["']$/g, '');
+      }
+    }
+
     // Update plan
     const updatedPlan = {
       ...existingPlan,
@@ -125,8 +181,8 @@ router.put("/plans/:planId", async (req, res) => {
       productionLimit: productionLimit === 0 ? -1 : parseInt(productionLimit),
       features: features.filter(f => f.trim() !== ''),
       isActive: Boolean(isActive),
-      ...(stripeProductId && { stripeProductId }),
-      ...(stripePriceId && { stripePriceId })
+      ...(cleanedStripeProductId && { stripeProductId: cleanedStripeProductId }),
+      ...(cleanedStripePriceId && { stripePriceId: cleanedStripePriceId })
     };
     
     const result = await SubscriptionsController.upsertSubscriptionPlan(updatedPlan);

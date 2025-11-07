@@ -20,21 +20,44 @@ const ordersRouter = require("./routes/orders");
 const ticketsRouter = require("./routes/tickets");
 const uploadRouter = require("./routes/upload");
 const subscriptionsRouter = require("./routes/subscriptions");
+const emailsRouter = require("./routes/emails");
 
 const app = express();
 const port = process.env.PORT || 4242;
+const path = require("path");
 
 // CORS
 const corsOptions = {
-  origin: ["http://localhost:5173","http://127.0.0.1:5173","https://www.stagepasspro.com","https://stage-pass-b1d9b.web.app","https://project-theatre-ticketing-system-with-crm-integration-440.magicpatterns.app"],
+  origin: ["http://localhost:5173","http://127.0.0.1:5173","http://localhost:4242","http://127.0.0.1:4242","https://www.stagepasspro.com","https://stage-pass-b1d9b.web.app","https://project-theatre-ticketing-system-with-crm-integration-440.magicpatterns.app"],
   credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"],
 };
 app.use(cors(corsOptions));
 
+// Serve the token helper page
+app.get("/get-token", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "get-token.html"));
+});
+
 // --- Webhooks MUST be mounted before JSON parsing ---
-app.use("/webhooks", bodyParser.raw({ type: "application/json" }), webhooksRouter);
+// Add logging middleware to catch all webhook requests
+app.use("/webhooks", (req, res, next) => {
+  console.log("\n🔔 WEBHOOK REQUEST DETECTED:", {
+    method: req.method,
+    path: req.path,
+    url: req.url,
+    originalUrl: req.originalUrl,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'content-length': req.headers['content-length'],
+      'stripe-signature': req.headers['stripe-signature'] ? 'PRESENT' : 'MISSING',
+      'user-agent': req.headers['user-agent']
+    },
+    timestamp: new Date().toISOString()
+  });
+  next();
+}, bodyParser.raw({ type: "application/json" }), webhooksRouter);
 
 // JSON for everything else
 app.use(bodyParser.json());
@@ -56,9 +79,22 @@ app.use("/api/orders", ordersRouter);
 app.use("/api/orders", ticketsRouter); // tickets are subcollection of orders
 app.use("/api/upload", uploadRouter);
 app.use("/api/subscriptions", subscriptionsRouter);
+app.use("/api/emails", emailsRouter);
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server listening on ${port}`);
+// Start server - listen on all interfaces (IPv4 and IPv6)
+// This ensures both localhost (IPv6 ::1) and 127.0.0.1 (IPv4) work
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server listening on ${port} (all interfaces)`);
+  console.log(`\n📡 Webhook endpoint: http://localhost:${port}/webhooks/stripe`);
+  console.log(`   Also available at: http://127.0.0.1:${port}/webhooks/stripe`);
+  if (process.env.STRIPE_WEBHOOK_SECRET) {
+    console.log(`✅ STRIPE_WEBHOOK_SECRET is set: ${process.env.STRIPE_WEBHOOK_SECRET}`);
+  } else {
+    console.log(`⚠️  STRIPE_WEBHOOK_SECRET is NOT set`);
+    console.log(`   When using 'stripe listen', set this to the webhook signing secret shown in the CLI output`);
+    console.log(`   Example: export STRIPE_WEBHOOK_SECRET=whsec_...`);
+  }
+  console.log(`\n🧪 Test webhook endpoint: http://localhost:${port}/webhooks/stripe/test`);
+  console.log(`\n🔑 Get Firebase ID Token: http://localhost:${port}/get-token\n`);
 });
 

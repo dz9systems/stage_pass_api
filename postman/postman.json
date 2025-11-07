@@ -29,6 +29,74 @@
       ]
     },
     {
+      "name": "Emails API",
+      "item": [
+        {
+          "name": "SEND GREETING EMAIL",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{id_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"user@example.com\",\n  \"name\": \"Taylor\",\n  \"subject\": \"Welcome to Stage Pass!\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/emails/greeting",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "emails", "greeting"]
+            },
+            "description": "Send a greeting/welcome email to a user using SendGrid."
+          },
+          "response": []
+        },
+        {
+          "name": "SEND RECEIPT EMAIL",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{id_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"user@example.com\",\n  \"subject\": \"Your Stage Pass Receipt\",\n  \"order\": {\n    \"id\": \"ord_123\",\n    \"totalAmount\": 2500,\n    \"items\": [\n      { \"name\": \"Ticket A\", \"price\": 2500, \"quantity\": 1 }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/emails/receipt",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "emails", "receipt"]
+            },
+            "description": "Send a receipt email with order summary. Amounts are in cents."
+          },
+          "response": []
+        },
+        {
+          "name": "SEND TICKET EMAIL (WITH QR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{id_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"user@example.com\",\n  \"subject\": \"Your Stage Pass Ticket\",\n  \"ticket\": {\n    \"id\": \"t_123\",\n    \"section\": \"A\",\n    \"row\": \"3\",\n    \"seatNumber\": \"12\"\n  },\n  \"order\": {\n    \"id\": \"ord_123\",\n    \"totalAmount\": 2500\n  },\n  \"performance\": {\n    \"productionName\": \"Hamlet\",\n    \"startTime\": \"2025-11-20T19:30:00Z\",\n    \"venueName\": \"Main Stage\"\n  },\n  \"venue\": {\n    \"name\": \"Main Stage\"\n  },\n  \"qrContent\": \"QR_t_123\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base_url}}/api/emails/ticket",
+              "host": ["{{api_base_url}}"],
+              "path": ["api", "emails", "ticket"]
+            },
+            "description": "Send a ticket email with an inline QR image attachment. If qrContent is omitted, ticket.qrCode or ticket.id is used."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Connect - Express",
       "item": [
         {
@@ -242,14 +310,14 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"planId\": \"professional\",\n  \"paymentMethodId\": \"pm_1abc123def456\",\n  \"customerId\": \"cus_xyz789\"\n}"
+                  "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"planId\": \"{{plan_id}}\",\n  \"paymentMethodId\": \"{{payment_method_id}}\",\n  \"customerId\": \"{{customer_id}}\"\n}"
                 },
                 "url": {
                   "raw": "{{api_base_url}}/payments/create-subscription",
                   "host": ["{{api_base_url}}"],
                   "path": ["payments", "create-subscription"]
                 },
-                "description": "Create a Stripe subscription for a user. Payment method must be created via Stripe.js first."
+                "description": "Create a Stripe subscription for a user.\n\n**Required fields:**\n- `userId`: Firebase user ID\n- `planId`: Subscription plan ID from your database\n- `paymentMethodId`: Stripe payment method ID (created via Stripe.js)\n\n**Optional fields:**\n- `customerId`: Existing Stripe customer ID (if not provided, a new customer will be created)\n\n**Response:**\n- `subscriptionId`: Stripe subscription ID\n- `clientSecret`: Payment intent client secret (for confirming payment)\n- `customerId`: Stripe customer ID\n- `status`: Subscription status\n\n**Note:** The subscription plan must have a `stripePriceId` configured. Payment method must be created via Stripe.js Elements first."
               },
               "response": []
             },
@@ -2511,6 +2579,7 @@
   "variable": [
     { "key": "api_base_url", "value": "http://localhost:4242" },
     { "key": "app_base_url", "value": "http://localhost:3000" },
+    { "key": "id_token", "value": "REPLACE_WITH_ID_TOKEN" },
     { "key": "theater_id", "value": "WSBuy0f9CChSK254B00360pVmEn1" },
     { "key": "account_id", "value": "acct_1S8GzjEnRw19N81P" },
     { "key": "product_id", "value": "prod_1234567890" },

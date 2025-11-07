@@ -10,7 +10,31 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 router.post("/create-intent", async (req, res) => {
   try {
     console.log("🔍 Payment intent request body:", req.body);
-    const { theaterId, amountCents, currency = "usd", orderId } = req.body;
+    const { theaterId, amountCents, currency = "usd", orderId, metadata: requestMetadata } = req.body;
+
+    // Use metadata from request if provided, otherwise build from individual fields
+    // This allows frontend to send full metadata object or just individual fields
+    const metadata = requestMetadata || { theaterId, orderId: orderId || "" };
+
+    // Ensure orderId is in metadata even if not in top-level request
+    if (!metadata.orderId && orderId) {
+      metadata.orderId = orderId;
+    }
+
+    // Ensure theaterId is in metadata
+    if (!metadata.theaterId && theaterId) {
+      metadata.theaterId = theaterId;
+    }
+
+    console.log("📦 PaymentIntent metadata:", metadata);
+
+    if (!metadata.orderId) {
+      console.warn(
+        "⚠️ No orderId provided in request. Webhook can't update order status or send emails without metadata.orderId."
+      );
+    } else {
+      console.log("🔗 Linking PaymentIntent to orderId:", metadata.orderId);
+    }
 
     if (!theaterId) {
       console.log("❌ Missing theaterId");
@@ -24,12 +48,12 @@ router.post("/create-intent", async (req, res) => {
     console.log("🔍 Looking up venue:", theaterId);
     const venues = await VenuesController.getVenuesBySellerId(theaterId);
     console.log("🔍 Venues found:", venues ? venues.length : 0);
-    
+
     if (!venues || venues.length === 0) {
       console.log("❌ No venues found for seller");
       return res.status(404).json({ error: "No venues found for seller" });
     }
-    
+
     // Use the first venue (or you might want to handle multiple venues differently)
     const venue = venues[0];
 
@@ -46,25 +70,54 @@ router.post("/create-intent", async (req, res) => {
 
     // Create PaymentIntent on main account and transfer full amount to seller
     // No transaction fees - theaters pay monthly subscription instead
+    // For Direct Charges (transfer_data), use explicit payment_method_types for better compatibility
     const pi = await stripe.paymentIntents.create({
       amount: Number(amountCents),
       currency,
-      automatic_payment_methods: { enabled: true },
-      metadata: { theaterId, orderId: orderId || "" },
+      payment_method_types: ['card'], // Explicitly specify card for connected accounts
+      metadata: metadata,
       transfer_data: {
         destination: seller.stripeAccountId,
       },
     });
 
-    console.log("✅ PaymentIntent created successfully");
-    res.json({ 
+    console.log(
+      "✅ PaymentIntent created successfully",
+      {
+        id: pi.id,
+        amount: pi.amount,
+        currency: pi.currency,
+        status: pi.status,
+        transfer_destination: pi.transfer_data && pi.transfer_data.destination,
+        metadata: pi.metadata
+      }
+    );
+    console.log(
+      `⚠️ PaymentIntent status: ${pi.status}. Webhook will only fire when status becomes 'succeeded' after payment confirmation.`
+    );
+    res.json({
       clientSecret: pi.client_secret,
       paymentIntentId: pi.id,
-      stripeAccountId: seller.stripeAccountId
+      stripeAccountId: seller.stripeAccountId,
+      warning: !metadata.orderId ? "No orderId in metadata; webhook will not update order or send receipt" : undefined
     });
   } catch (e) {
-    console.error("❌ PaymentIntent creation failed:", e);
-    res.status(500).json({ error: e.message });
+    console.error("❌ PaymentIntent creation failed:", {
+      message: e.message,
+      type: e.type,
+      code: e.code,
+      decline_code: e.decline_code,
+      param: e.param,
+      statusCode: e.statusCode,
+      raw: e.raw,
+      requestId: e.requestId
+    });
+    res.status(500).json({
+      error: e.message,
+      type: e.type,
+      code: e.code,
+      details: e.raw || e
+    });
   }
 });
 
@@ -81,24 +134,24 @@ router.post("/cancel-payment-intent", async (req, res) => {
 
     // Cancel the PaymentIntent on the correct account
     const cancelOptions = stripeAccountId ? { stripeAccount: stripeAccountId } : {};
-    
+
     try {
       const canceledPi = await stripe.paymentIntents.cancel(paymentIntentId, cancelOptions);
       console.log("✅ PaymentIntent canceled successfully:", canceledPi.id);
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         paymentIntentId: canceledPi.id,
-        status: canceledPi.status 
+        status: canceledPi.status
       });
     } catch (cancelError) {
       // If PaymentIntent doesn't exist or is already canceled/completed, that's okay
-      if (cancelError.code === 'resource_missing' || 
+      if (cancelError.code === 'resource_missing' ||
           cancelError.message?.includes('No such payment_intent') ||
           cancelError.message?.includes('already canceled') ||
           cancelError.message?.includes('already succeeded')) {
         console.log("ℹ️ PaymentIntent already canceled/completed or doesn't exist:", paymentIntentId);
-        res.json({ 
-          success: true, 
+        res.json({
+          success: true,
           paymentIntentId: paymentIntentId,
           status: 'already_handled',
           message: 'PaymentIntent was already handled'
@@ -154,10 +207,10 @@ router.post("/confirm-payment-intent", async (req, res) => {
       },
       { stripeAccount: stripeAccountId }
     );
-    
+
     console.log("✅ PaymentIntent confirmed successfully:", confirmedPi.id);
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       paymentIntentId: confirmedPi.id,
       status: confirmedPi.status,
       clientSecret: confirmedPi.client_secret
@@ -176,8 +229,8 @@ router.post("/create-subscription", async (req, res) => {
 
     // Validation
     if (!userId || !planId || !paymentMethodId) {
-      return res.status(400).json({ 
-        error: "userId, planId, and paymentMethodId are required" 
+      return res.status(400).json({
+        error: "userId, planId, and paymentMethodId are required"
       });
     }
 
@@ -189,9 +242,24 @@ router.post("/create-subscription", async (req, res) => {
 
     // Check if plan has Stripe price ID
     if (!plan.stripePriceId) {
-      return res.status(400).json({ 
-        error: "Subscription plan is not configured for Stripe billing" 
+      return res.status(400).json({
+        error: "Subscription plan is not configured for Stripe billing"
       });
+    }
+
+    // Clean up stripePriceId - handle JSON stringified values
+    let stripePriceId = plan.stripePriceId;
+    if (typeof stripePriceId === 'string') {
+      // Try to parse if it's a JSON string
+      try {
+        const parsed = JSON.parse(stripePriceId);
+        if (typeof parsed === 'string') {
+          stripePriceId = parsed;
+        }
+      } catch (e) {
+        // Not JSON, just remove surrounding quotes if present
+        stripePriceId = stripePriceId.replace(/^["']|["']$/g, '');
+      }
     }
 
     // Get or create Stripe customer
@@ -224,10 +292,13 @@ router.post("/create-subscription", async (req, res) => {
       },
     });
 
+    console.log('plan.stripePriceId (original):', plan.stripePriceId);
+    console.log('stripePriceId (cleaned):', stripePriceId);
+
     // Create subscription
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
-      items: [{ price: plan.stripePriceId }],
+      items: [{ price: stripePriceId }],
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription' },
       expand: ['latest_invoice.payment_intent'],
@@ -259,17 +330,17 @@ router.post("/complete-subscription", async (req, res) => {
     const { subscriptionId, userId } = req.body;
 
     if (!subscriptionId || !userId) {
-      return res.status(400).json({ 
-        error: "subscriptionId and userId are required" 
+      return res.status(400).json({
+        error: "subscriptionId and userId are required"
       });
     }
 
     // Get subscription from Stripe
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    
+
     if (subscription.status !== 'active') {
-      return res.status(400).json({ 
-        error: `Subscription is not active. Current status: ${subscription.status}` 
+      return res.status(400).json({
+        error: `Subscription is not active. Current status: ${subscription.status}`
       });
     }
 
@@ -278,8 +349,8 @@ router.post("/complete-subscription", async (req, res) => {
     const planName = subscription.metadata.planName;
 
     if (!planId) {
-      return res.status(400).json({ 
-        error: "Subscription metadata missing planId" 
+      return res.status(400).json({
+        error: "Subscription metadata missing planId"
       });
     }
 
@@ -323,8 +394,8 @@ router.post("/cancel-subscription", async (req, res) => {
     const { subscriptionId, userId, cancelAtPeriodEnd = true } = req.body;
 
     if (!subscriptionId || !userId) {
-      return res.status(400).json({ 
-        error: "subscriptionId and userId are required" 
+      return res.status(400).json({
+        error: "subscriptionId and userId are required"
       });
     }
 
@@ -362,9 +433,9 @@ router.post("/cancel-subscription", async (req, res) => {
 router.get("/subscription/:subscriptionId", async (req, res) => {
   try {
     const { subscriptionId } = req.params;
-    
+
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    
+
     res.json({
       id: subscription.id,
       status: subscription.status,
@@ -384,6 +455,37 @@ router.get("/subscription/:subscriptionId", async (req, res) => {
 
   } catch (e) {
     console.error("❌ Failed to get subscription:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Get PaymentIntent status (for debugging)
+router.get("/payment-intent/:paymentIntentId", async (req, res) => {
+  try {
+    const { paymentIntentId } = req.params;
+
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    console.log(`🔍 PaymentIntent status check:`, {
+      id: pi.id,
+      status: pi.status,
+      amount: pi.amount,
+      metadata: pi.metadata,
+      created: new Date(pi.created * 1000).toISOString()
+    });
+
+    res.json({
+      id: pi.id,
+      status: pi.status,
+      amount: pi.amount,
+      currency: pi.currency,
+      metadata: pi.metadata,
+      created: new Date(pi.created * 1000).toISOString(),
+      lastPaymentError: pi.last_payment_error,
+      charges: pi.charges?.data || []
+    });
+  } catch (e) {
+    console.error("❌ Failed to get PaymentIntent:", e);
     res.status(500).json({ error: e.message });
   }
 });

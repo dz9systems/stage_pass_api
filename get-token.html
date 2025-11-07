@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Firebase ID Token</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #tokenDisplay {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            word-break: break-all;
+            display: none;
+        }
+        .copy-btn {
+            background-color: #2196F3;
+            margin-top: 10px;
+        }
+        .copy-btn:hover {
+            background-color: #0b7dda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Get Firebase ID Token for Testing</h2>
+        <p><strong>⚠️ Important:</strong> This page must be accessed via <code>http://localhost:4242/get-token</code> (not file://) for Firebase authentication to work.</p>
+        <p>Sign in to get your ID token:</p>
+        
+        <div style="margin-bottom: 20px;">
+            <button onclick="signInWithGoogle()" style="background-color: #4285F4;">
+                🔵 Sign in with Google
+            </button>
+        </div>
+        
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+        <p style="margin-top: 20px;">Or sign in with email and password:</p>
+        
+        <input type="email" id="email" placeholder="Your email">
+        <input type="password" id="password" placeholder="Your password">
+        <button onclick="signIn()">Sign In with Email & Get Token</button>
+        
+        <div id="tokenDisplay">
+            <h3>Your ID Token:</h3>
+            <pre id="token"></pre>
+            <button class="copy-btn" onclick="copyToken()">Copy Token</button>
+            <p><strong>Use this token in Postman:</strong></p>
+            <p>Set the <code>id_token</code> variable in your Postman environment to the token above.</p>
+            <p>Or use it directly in the Authorization header: <code>Bearer YOUR_TOKEN_HERE</code></p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlEj1egHnEn_Kr15Vi3OTwefghhPod3jU",
+            authDomain: "stage-pass-b1d9b.firebaseapp.com",
+            projectId: "stage-pass-b1d9b",
+            storageBucket: "stage-pass-b1d9b.firebasestorage.app",
+            messagingSenderId: "55719597935",
+            appId: "1:55719597935:web:acb9ad699bb5ad2547ba9a"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        // Helper function to get and display token
+        async function getAndDisplayToken(user) {
+            try {
+                const idToken = await user.getIdToken();
+                document.getElementById('token').textContent = idToken;
+                document.getElementById('tokenDisplay').style.display = 'block';
+                window.currentToken = idToken;
+                if (user.email) {
+                    document.getElementById('email').value = user.email;
+                }
+                console.log('ID Token:', idToken);
+            } catch (error) {
+                console.error('Error getting token:', error);
+                alert('Error getting token: ' + error.message);
+            }
+        }
+
+        window.signInWithGoogle = async function() {
+            try {
+                const result = await signInWithPopup(auth, googleProvider);
+                const user = result.user;
+                await getAndDisplayToken(user);
+            } catch (error) {
+                if (error.code === 'auth/popup-closed-by-user') {
+                    alert('Sign-in popup was closed. Please try again.');
+                } else {
+                    alert('Error signing in with Google: ' + error.message);
+                    console.error('Google sign-in error:', error);
+                }
+            }
+        };
+
+        window.signIn = async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                alert('Please enter both email and password');
+                return;
+            }
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                await getAndDisplayToken(user);
+            } catch (error) {
+                alert('Error signing in: ' + error.message);
+                console.error('Sign in error:', error);
+            }
+        };
+
+        window.copyToken = function() {
+            if (window.currentToken) {
+                navigator.clipboard.writeText(window.currentToken).then(() => {
+                    alert('Token copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    // Fallback: select text
+                    const tokenElement = document.getElementById('token');
+                    const range = document.createRange();
+                    range.selectNode(tokenElement);
+                    window.getSelection().removeAllRanges();
+                    window.getSelection().addRange(range);
+                    document.execCommand('copy');
+                    alert('Token selected - press Ctrl+C (or Cmd+C) to copy');
+                });
+            }
+        };
+
+        // Check if user is already signed in
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                await getAndDisplayToken(user);
+            }
+        });
+    </script>
+</body>
+</html>
+
