@@ -35,6 +35,9 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+// Serve static assets (logos, images, etc.)
+app.use("/assets", express.static(path.join(__dirname, "..", "assets")));
+
 // Serve the token helper page
 app.get("/get-token", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "get-token.html"));
@@ -85,16 +88,5 @@ app.use("/api/emails", emailsRouter);
 // This ensures both localhost (IPv6 ::1) and 127.0.0.1 (IPv4) work
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server listening on ${port} (all interfaces)`);
-  console.log(`\n📡 Webhook endpoint: http://localhost:${port}/webhooks/stripe`);
-  console.log(`   Also available at: http://127.0.0.1:${port}/webhooks/stripe`);
-  if (process.env.STRIPE_WEBHOOK_SECRET) {
-    console.log(`✅ STRIPE_WEBHOOK_SECRET is set: ${process.env.STRIPE_WEBHOOK_SECRET}`);
-  } else {
-    console.log(`⚠️  STRIPE_WEBHOOK_SECRET is NOT set`);
-    console.log(`   When using 'stripe listen', set this to the webhook signing secret shown in the CLI output`);
-    console.log(`   Example: export STRIPE_WEBHOOK_SECRET=whsec_...`);
-  }
-  console.log(`\n🧪 Test webhook endpoint: http://localhost:${port}/webhooks/stripe/test`);
-  console.log(`\n🔑 Get Firebase ID Token: http://localhost:${port}/get-token\n`);
 });
 

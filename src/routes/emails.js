@@ -5,6 +5,7 @@ const {
   sendGreetingEmail,
   sendReceiptEmail,
   sendTicketEmail,
+  sendTicketsEmail,
 } = require("../services/email");
 const { verifyFirebaseIdToken } = require("../middleware/auth");
 

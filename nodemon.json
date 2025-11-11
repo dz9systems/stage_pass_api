@@ -1,0 +1,9 @@
+{
+  "watch": ["src"],
+  "ext": "js,json",
+  "ignore": ["node_modules", "functions", "*.test.js"],
+  "exec": "node src/index.js",
+  "stdin": false,
+  "restartable": "rs"
+}
+

@@ -59,12 +59,36 @@ class TicketsController {
         }
       });
       
-      const snapshot = await query
-        .orderBy('section')
-        .orderBy('row')
-        .orderBy('seatNumber')
-        .get();
-      const tickets = docsToObjects(snapshot.docs);
+      // Try to use orderBy with index, fallback to in-memory sort if index not ready
+      let tickets;
+      try {
+        // Always order by section, row, seatNumber for consistent sorting
+        // Requires composite index: section (ASC), row (ASC), seatNumber (ASC)
+        const snapshot = await query
+          .orderBy('section')
+          .orderBy('row')
+          .orderBy('seatNumber')
+          .get();
+        tickets = docsToObjects(snapshot.docs);
+      } catch (indexError) {
+        // If index is not ready yet, fetch without orderBy and sort in memory
+        if (indexError.message && indexError.message.includes('index')) {
+          console.warn(`⚠️ Firestore index not ready yet, fetching tickets without orderBy and sorting in memory`);
+          const snapshot = await query.get();
+          tickets = docsToObjects(snapshot.docs);
+          // Sort in memory: section, row, seatNumber
+          tickets.sort((a, b) => {
+            const sectionCompare = (a.section || '').localeCompare(b.section || '');
+            if (sectionCompare !== 0) return sectionCompare;
+            const rowCompare = (a.row || '').localeCompare(b.row || '');
+            if (rowCompare !== 0) return rowCompare;
+            const seatCompare = String(a.seatNumber || '').localeCompare(String(b.seatNumber || ''));
+            return seatCompare;
+          });
+        } else {
+          throw indexError;
+        }
+      }
       
       if (pagination.limit || pagination.offset) {
         return applyPagination(tickets, pagination.limit, pagination.offset);

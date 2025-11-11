@@ -49,6 +49,196 @@ async function resolveUserIdFromCustomer(stripeCustomerId, stripeAccount = null)
 }
 
 /**
+ * Generate secure view token for public order access
+ */
+function generateViewToken() {
+  const crypto = require("crypto");
+  return crypto.randomBytes(32).toString('base64url');
+}
+
+/**
+ * Calculate token expiration (2 years from now)
+ */
+function calculateTokenExpiration() {
+  const twoYearsFromNow = new Date();
+  twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2);
+  return twoYearsFromNow.toISOString();
+}
+
+/**
+ * Create an order from PaymentIntent metadata when orderId is missing
+ */
+async function createOrderFromPaymentIntent(pi, getStripeOptions) {
+  try {
+    console.log("📦 [Webhook] Creating order from PaymentIntent metadata:", {
+      paymentIntentId: pi.id,
+      metadata: pi.metadata
+    });
+
+    // Extract order data from PaymentIntent metadata
+    const metadata = pi.metadata || {};
+    
+    // Required fields for order creation
+    // Frontend sends sellerId (not theaterId or userId)
+    const sellerId = metadata.sellerId;
+    const productionId = metadata.productionId;
+    const performanceId = metadata.performanceId;
+    const totalAmount = pi.amount; // PaymentIntent amount is in cents
+    
+    // Validate required fields
+    if (!sellerId || !productionId || !performanceId || !totalAmount) {
+      const missingFields = [];
+      if (!sellerId) missingFields.push('sellerId');
+      if (!productionId) missingFields.push('productionId');
+      if (!performanceId) missingFields.push('performanceId');
+      if (!totalAmount) missingFields.push('amount');
+      
+      throw new Error(`Cannot create order: missing required fields in PaymentIntent metadata: ${missingFields.join(', ')}`);
+    }
+
+    // Generate order ID and view token
+    const crypto = require("crypto");
+    const orderId = crypto.randomBytes(16).toString('hex');
+    const viewToken = generateViewToken();
+    const viewTokenExpiresAt = calculateTokenExpiration();
+    const baseUrl = metadata.baseUrl || process.env.APP_BASE_URL || 'https://www.stagepasspro.com';
+    const now = new Date().toISOString();
+
+    // Build venue address from separate fields if provided
+    let venueAddress = metadata.venueAddress || null;
+    if (!venueAddress && (metadata.venueCity || metadata.venueState || metadata.venueZipCode)) {
+      const addressParts = [
+        metadata.venueAddress,
+        metadata.venueCity,
+        metadata.venueState,
+        metadata.venueZipCode
+      ].filter(Boolean);
+      if (addressParts.length > 0) {
+        venueAddress = addressParts.join(', ');
+      }
+    }
+
+    // Create order object
+    const order = {
+      id: orderId,
+      userId: sellerId, // For backward compatibility
+      sellerId,
+      productionId,
+      performanceId,
+      totalAmount: parseInt(totalAmount),
+      status: 'pending',
+      paymentStatus: 'paid', // Payment already succeeded
+      paymentMethod: pi.payment_method_types?.[0] || 'card',
+      customerEmail: metadata.customerEmail || null,
+      baseUrl,
+      viewToken,
+      viewTokenExpiresAt,
+      // Store venue/location data from frontend (separate fields)
+      venueName: metadata.venueName || null,
+      venueAddress: venueAddress,
+      venueCity: metadata.venueCity || null,
+      venueState: metadata.venueState || null,
+      venueZipCode: metadata.venueZipCode || null,
+      // Store performance date/time from frontend
+      performanceDate: metadata.performanceDate || null,
+      performanceTime: metadata.performanceTime || null,
+      // Add PaymentIntent ID for reference
+      stripePaymentIntentId: pi.id,
+      createdAt: now,
+      updatedAt: now,
+      tickets: [] // Tickets are created via order creation endpoint, not webhook
+    };
+
+    // Create the order
+    const createdOrder = await OrdersController.upsertOrder(order);
+    console.log("✅ [Webhook] Created order from PaymentIntent:", orderId);
+    console.log("📋 [Webhook] Order includes venue:", {
+      venueName: order.venueName,
+      venueAddress: order.venueAddress,
+      performanceDate: order.performanceDate,
+      performanceTime: order.performanceTime
+    });
+
+    // Parse tickets from metadata if provided (tickets should be JSON string in metadata)
+    let tickets = [];
+    if (metadata.tickets) {
+      try {
+        // Try to parse as JSON string
+        tickets = typeof metadata.tickets === 'string' 
+          ? JSON.parse(metadata.tickets) 
+          : metadata.tickets;
+        
+        if (!Array.isArray(tickets)) {
+          console.warn("⚠️ [Webhook] Tickets metadata is not an array, skipping ticket creation");
+          tickets = [];
+        }
+      } catch (parseError) {
+        console.error("❌ [Webhook] Failed to parse tickets from metadata:", parseError.message);
+        tickets = [];
+      }
+    }
+
+    // Create tickets subcollection if tickets data is provided
+    if (tickets && tickets.length > 0) {
+      console.log(`📝 [Webhook] Creating ${tickets.length} tickets for order ${orderId}`);
+      
+      const orderUrl = `${baseUrl}/orders/${orderId}?token=${encodeURIComponent(viewToken)}`;
+      const ticketIds = [];
+      
+      for (const ticketData of tickets) {
+        try {
+          const ticketId = crypto.randomBytes(16).toString('hex');
+          const ticket = {
+            id: ticketId,
+            seatId: ticketData.seatId || null,
+            section: ticketData.section || null,
+            row: ticketData.row || null,
+            seatNumber: ticketData.seatNumber || null,
+            price: parseInt(ticketData.price) || 0,
+            status: 'valid',
+            qrCode: orderUrl, // Use order URL with token for QR code
+            createdAt: now
+          };
+
+          await TicketsController.upsertTicket(orderId, ticket);
+          ticketIds.push(ticketId);
+          console.log(`✅ [Webhook] Created ticket ${ticketId} for order ${orderId}`);
+        } catch (ticketError) {
+          console.error(`❌ [Webhook] Failed to create ticket:`, ticketError.message);
+        }
+      }
+
+      // Update order with ticket IDs
+      if (ticketIds.length > 0) {
+        await OrdersController.updateOrder(orderId, { tickets: ticketIds });
+        console.log(`✅ [Webhook] Updated order with ${ticketIds.length} ticket IDs`);
+      }
+    } else {
+      console.warn("⚠️ [Webhook] No tickets data in metadata - order created without tickets");
+    }
+
+    // Update PaymentIntent metadata with the new orderId
+    try {
+      await stripe.paymentIntents.update(pi.id, {
+        metadata: {
+          ...metadata,
+          orderId: orderId
+        }
+      }, getStripeOptions());
+      console.log("✅ [Webhook] Updated PaymentIntent metadata with orderId:", orderId);
+    } catch (updateError) {
+      console.error("⚠️ [Webhook] Failed to update PaymentIntent metadata:", updateError.message);
+      // Continue anyway - order is created
+    }
+
+    return createdOrder;
+  } catch (error) {
+    console.error("❌ [Webhook] Failed to create order from PaymentIntent:", error.message);
+    throw error;
+  }
+}
+
+/**
  * Process webhook event asynchronously
  */
 async function processWebhookEvent(event) {
@@ -71,26 +261,48 @@ async function processWebhookEvent(event) {
   try {
     switch (event.type) {
       case "payment_intent.succeeded": {
-        const pi = event.data.object;
+        let pi = event.data.object;
         console.log("✅ Payment succeeded", connectedAccount, pi.id, pi.metadata);
-        if (!pi.metadata || !pi.metadata.orderId) {
-          console.warn(
-            "⚠️ PaymentIntent has no metadata.orderId — cannot update order or send emails.",
-            { paymentIntentId: pi.id }
-          );
-          break;
+        
+        // Check if orderId is missing or empty (not just falsy)
+        let orderId = pi.metadata?.orderId;
+        if (!orderId || orderId.trim() === '') {
+          console.warn("⚠️ [Webhook] PaymentIntent has no metadata.orderId or it's empty — attempting to create order from metadata.", {
+            paymentIntentId: pi.id,
+            hasMetadata: !!pi.metadata,
+            metadata: pi.metadata
+          });
+          
+          try {
+            // Create order from PaymentIntent metadata
+            const createdOrder = await createOrderFromPaymentIntent(pi, getStripeOptions);
+            orderId = createdOrder.id;
+            console.log("✅ [Webhook] Successfully created order from PaymentIntent:", orderId);
+            
+            // Re-fetch PaymentIntent to get updated metadata
+            try {
+              pi = await stripe.paymentIntents.retrieve(pi.id, getStripeOptions());
+            } catch (err) {
+              console.warn("⚠️ [Webhook] Could not re-fetch PaymentIntent, using created order:", err.message);
+            }
+          } catch (createError) {
+            console.error("❌ [Webhook] Failed to create order from PaymentIntent — cannot send emails.", {
+              paymentIntentId: pi.id,
+              error: createError.message
+            });
+            break;
+          }
         }
 
         // Update order payment status and lifecycle status
-        if (pi.metadata && pi.metadata.orderId) {
+        if (orderId) {
           try {
-            console.log("🧾 Updating order statuses to paid/confirmed", pi.metadata.orderId);
-            await OrdersController.updatePaymentStatus(pi.metadata.orderId, 'paid');
-            await OrdersController.updateOrderStatus(pi.metadata.orderId, 'confirmed');
-            console.log(`✅ Order ${pi.metadata.orderId} marked as paid`);
+            console.log("🧾 Updating order statuses to paid/confirmed", orderId);
+            await OrdersController.updatePaymentStatus(orderId, 'paid');
+            await OrdersController.updateOrderStatus(orderId, 'confirmed');
+            console.log(`✅ Order ${orderId} marked as paid`);
 
             // Fetch order, user, and tickets to send emails
-            const orderId = pi.metadata.orderId;
             console.log("🔎 Fetching order to prepare emails:", orderId);
             const order = await OrdersController.getOrderById(orderId);
             if (!order) break;

@@ -110,7 +110,52 @@ router.get("/", async (req, res) => {
       offset = 0 
     } = req.query;
     
-    const orders = await OrdersController.getAllOrders({ userId, sellerId, status, paymentStatus, productionId, performanceId });
+    let orders;
+    
+    // Use specialized methods when userId or sellerId is provided for better query performance
+    if (userId) {
+      // Debug logging
+      console.log(`[Orders] Querying orders for userId: ${userId}`);
+      
+      // Use getOrdersByUserId which is optimized for userId queries
+      const filters = { status, paymentStatus, productionId, performanceId };
+      // Remove undefined/null/empty values from filters
+      Object.keys(filters).forEach(key => {
+        if (filters[key] === undefined || filters[key] === null || filters[key] === '') {
+          delete filters[key];
+        }
+      });
+      
+      orders = await OrdersController.getOrdersByUserId(userId, filters);
+      
+      // Debug logging
+      console.log(`[Orders] Found ${orders.length} orders for userId: ${userId}`);
+      if (orders.length === 0) {
+        console.log(`[Orders] No orders found. Check if userId is correct and orders exist in database.`);
+      }
+    } else if (sellerId) {
+      // Use getOrdersBySellerId which is optimized for sellerId queries
+      const filters = { status, paymentStatus, productionId, performanceId };
+      // Remove undefined/null/empty values from filters
+      Object.keys(filters).forEach(key => {
+        if (filters[key] === undefined || filters[key] === null || filters[key] === '') {
+          delete filters[key];
+        }
+      });
+      
+      orders = await OrdersController.getOrdersBySellerId(sellerId, filters);
+    } else {
+      // Use getAllOrders for general queries
+      const filters = { status, paymentStatus, productionId, performanceId };
+      // Remove undefined/null/empty values from filters
+      Object.keys(filters).forEach(key => {
+        if (filters[key] === undefined || filters[key] === null || filters[key] === '') {
+          delete filters[key];
+        }
+      });
+      
+      orders = await OrdersController.getAllOrders(filters);
+    }
     
     // Apply pagination
     const startIndex = parseInt(offset);

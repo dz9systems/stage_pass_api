@@ -63,5 +63,11 @@ service firebase.storage {
       allow read, write: if request.auth != null && 
         request.auth.token.admin == true;
     }
+    
+    // QR codes for tickets - public read (needed for email clients), authenticated write
+    match /qr-codes/{allPaths=**} {
+      allow read: if true;  // Public read so email clients can display QR codes
+      allow write: if request.auth != null;  // Only authenticated users can upload
+    }
   }
 }

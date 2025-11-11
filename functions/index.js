@@ -26,6 +26,7 @@ const subscriptionsRouter = require("./routes/subscriptions");
 const emailsRouter = require("./routes/emails");
 
 const app = express();
+const path = require("path");
 
 // CORS
 const corsOptions = {
@@ -35,6 +36,10 @@ const corsOptions = {
   allowedHeaders: ["Content-Type","Authorization"],
 };
 app.use(cors(corsOptions));
+
+// Serve static assets (logos, images, etc.)
+// Path goes up one level from functions/ to access root assets/ folder
+app.use("/assets", express.static(path.join(__dirname, "..", "assets")));
 
 
 

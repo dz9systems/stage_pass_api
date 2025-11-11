@@ -1,0 +1,403 @@
+{
+	"info": {
+		"name": "Stage Pass API",
+		"description": "API collection for Stage Pass Pro",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Email Testing",
+			"item": [
+				{
+					"name": "Test Email Webhook (Payment Success)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"evt_test_1234567890\",\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"pi_test_1234567890\",\n      \"object\": \"payment_intent\",\n      \"amount\": 5000,\n      \"currency\": \"usd\",\n      \"status\": \"succeeded\",\n      \"metadata\": {\n        \"orderId\": \"{{order_id}}\",\n        \"customerEmail\": \"{{test_email}}\",\n        \"baseUrl\": \"{{base_url}}\"\n      },\n      \"customer\": null\n    }\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base_url}}/webhooks/stripe",
+							"host": [
+								"{{api_base_url}}"
+							],
+							"path": [
+								"webhooks",
+								"stripe"
+							]
+						},
+						"description": "Simulates a Stripe payment_intent.succeeded webhook event to trigger email sending.\n\n**Variables to set:**\n- `{{order_id}}` - A valid order ID from your database\n- `{{test_email}}` - Email address to receive the test email\n- `{{base_url}}` - Your frontend URL (e.g., http://localhost:5173)"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for testing email functionality"
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Get All Orders",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{id_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_base_url}}/api/orders?userId={{user_id}}",
+							"host": [
+								"{{api_base_url}}"
+							],
+							"path": [
+								"api",
+								"orders"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{user_id}}",
+									"description": "User ID to filter orders"
+								},
+								{
+									"key": "status",
+									"value": "",
+									"description": "Optional: Filter by order status",
+									"disabled": true
+								},
+								{
+									"key": "paymentStatus",
+									"value": "",
+									"description": "Optional: Filter by payment status",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all orders, optionally filtered by userId, sellerId, status, etc."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Orders by User ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{id_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_base_url}}/api/orders/user/{{user_id}}",
+							"host": [
+								"{{api_base_url}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								"user",
+								"{{user_id}}"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "",
+									"description": "Optional: Filter by order status",
+									"disabled": true
+								},
+								{
+									"key": "paymentStatus",
+									"value": "",
+									"description": "Optional: Filter by payment status",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get orders for a specific user"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Order",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{id_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sellerId\": \"{{seller_id}}\",\n  \"productionId\": \"{{production_id}}\",\n  \"performanceId\": \"{{performance_id}}\",\n  \"totalAmount\": 5000,\n  \"customerEmail\": \"{{test_email}}\",\n  \"baseUrl\": \"{{base_url}}\",\n  \"tickets\": [\n    \"ticket_id_1\",\n    \"ticket_id_2\"\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base_url}}/api/orders",
+							"host": [
+								"{{api_base_url}}"
+							],
+							"path": [
+								"api",
+								"orders"
+							]
+						},
+						"description": "Create a new order. \n\n**Note:**\n- `sellerId` is the userId (no separate userId field needed)\n- `tickets` should be an array of ticket IDs (strings), not full ticket objects\n- Returns the order ID which you can use for testing the email webhook."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order by ID (with Auth)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{id_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{id_token}}",
+								"type": "text",
+								"description": "Firebase ID token"
+							}
+						],
+						"url": {
+							"raw": "{{api_base_url}}/api/orders/{{order_id}}",
+							"host": [
+								"{{api_base_url}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								"{{order_id}}"
+							]
+						},
+						"description": "Get a specific order by ID. Requires authentication (Bearer token) OR use the token query parameter version below."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order by ID (with Token)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_base_url}}/api/orders/{{order_id}}?token={{view_token}}",
+							"host": [
+								"{{api_base_url}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								"{{order_id}}"
+							],
+							"query": [
+								{
+									"key": "token",
+									"value": "{{view_token}}",
+									"description": "View token from order (viewToken field). Get this from the order document or from the email QR code link."
+								}
+							]
+						},
+						"description": "Get order using viewToken (from order confirmation email). No authentication needed."
+					},
+					"response": []
+				}
+			],
+			"description": "Order management endpoints"
+		},
+		{
+			"name": "Payments",
+			"item": [
+				{
+					"name": "Create Payment Intent",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{id_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"theaterId\": \"{{seller_id}}\",\n  \"amountCents\": 5000,\n  \"orderId\": \"{{order_id}}\",\n  \"baseUrl\": \"{{base_url}}\",\n  \"metadata\": {\n    \"orderId\": \"{{order_id}}\",\n    \"customerEmail\": \"{{test_email}}\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_base_url}}/api/payments/create-intent",
+							"host": [
+								"{{api_base_url}}"
+							],
+							"path": [
+								"api",
+								"payments",
+								"create-intent"
+							]
+						},
+						"description": "Create a payment intent for an order. The metadata will be used by the webhook to send emails."
+					},
+					"response": []
+				}
+			],
+			"description": "Payment processing endpoints"
+		},
+		{
+			"name": "Webhooks",
+			"item": [
+				{
+					"name": "Test Webhook Endpoint",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_base_url}}/webhooks/stripe/test",
+							"host": [
+								"{{api_base_url}}"
+							],
+							"path": [
+								"webhooks",
+								"stripe",
+								"test"
+							]
+						},
+						"description": "Test endpoint to verify webhook route is accessible"
+					},
+					"response": []
+				}
+			],
+			"description": "Webhook endpoints"
+		}
+	],
+	"variable": [
+		{
+			"key": "api_base_url",
+			"value": "http://localhost:4242",
+			"type": "string"
+		},
+		{
+			"key": "id_token",
+			"value": "",
+			"type": "string",
+			"description": "Firebase ID token from http://localhost:4242/get-token"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string",
+			"description": "Your user ID"
+		},
+		{
+			"key": "seller_id",
+			"value": "",
+			"type": "string",
+			"description": "Seller/theater ID"
+		},
+		{
+			"key": "order_id",
+			"value": "",
+			"type": "string",
+			"description": "Order ID (get this from creating an order)"
+		},
+		{
+			"key": "test_email",
+			"value": "your-email@example.com",
+			"type": "string",
+			"description": "Email address for testing"
+		},
+		{
+			"key": "base_url",
+			"value": "http://localhost:5173",
+			"type": "string",
+			"description": "Frontend base URL for QR codes"
+		},
+		{
+			"key": "production_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "performance_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "view_token",
+			"value": "",
+			"type": "string",
+			"description": "View token from order (viewToken field). Get this from the order document in Firestore or from the email QR code link."
+		}
+	]
+}
+

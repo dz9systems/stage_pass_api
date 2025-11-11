@@ -58,8 +58,27 @@ class OrdersController {
         }
       });
       
-      const snapshot = await query.orderBy('createdAt', 'desc').get();
-      const orders = docsToObjects(snapshot.docs);
+      // Try to use orderBy with index, fallback to in-memory sort if index not ready
+      let orders;
+      try {
+        const snapshot = await query.orderBy('createdAt', 'desc').get();
+        orders = docsToObjects(snapshot.docs);
+      } catch (indexError) {
+        // If index is not ready yet, fetch without orderBy and sort in memory
+        if (indexError.message && indexError.message.includes('index')) {
+          console.warn(`⚠️ Firestore index not ready yet for orders query, fetching without orderBy and sorting in memory`);
+          const snapshot = await query.get();
+          orders = docsToObjects(snapshot.docs);
+          // Sort in memory by createdAt descending
+          orders.sort((a, b) => {
+            const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
+            const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
+            return bTime - aTime;
+          });
+        } else {
+          throw indexError;
+        }
+      }
       
       if (pagination.limit || pagination.offset) {
         return applyPagination(orders, pagination.limit, pagination.offset);
@@ -84,8 +103,27 @@ class OrdersController {
         }
       });
       
-      const snapshot = await query.orderBy('createdAt', 'desc').get();
-      const orders = docsToObjects(snapshot.docs);
+      // Try to use orderBy with index, fallback to in-memory sort if index not ready
+      let orders;
+      try {
+        const snapshot = await query.orderBy('createdAt', 'desc').get();
+        orders = docsToObjects(snapshot.docs);
+      } catch (indexError) {
+        // If index is not ready yet, fetch without orderBy and sort in memory
+        if (indexError.message && indexError.message.includes('index')) {
+          console.warn(`⚠️ Firestore index not ready yet for orders query, fetching without orderBy and sorting in memory`);
+          const snapshot = await query.get();
+          orders = docsToObjects(snapshot.docs);
+          // Sort in memory by createdAt descending
+          orders.sort((a, b) => {
+            const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
+            const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
+            return bTime - aTime;
+          });
+        } else {
+          throw indexError;
+        }
+      }
       
       if (pagination.limit || pagination.offset) {
         return applyPagination(orders, pagination.limit, pagination.offset);

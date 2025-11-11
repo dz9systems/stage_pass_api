@@ -10,20 +10,96 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 router.post("/create-intent", async (req, res) => {
   try {
     console.log("🔍 Payment intent request body:", req.body);
-    const { theaterId, amountCents, currency = "usd", orderId, metadata: requestMetadata } = req.body;
+    const { 
+      sellerId,  // Frontend sends sellerId (not theaterId)
+      theaterId, // Keep for backward compatibility
+      amountCents, 
+      currency = "usd", 
+      orderId, 
+      baseUrl, 
+      // Frontend can send these directly or in metadata
+      productionId,
+      performanceId,
+      customerEmail,
+      venueName,
+      venueAddress,
+      venueCity,
+      venueState,
+      venueZipCode,
+      performanceDate,
+      performanceTime,
+      tickets, // Tickets array (will be stringified for Stripe metadata)
+      metadata: requestMetadata 
+    } = req.body;
 
     // Use metadata from request if provided, otherwise build from individual fields
     // This allows frontend to send full metadata object or just individual fields
-    const metadata = requestMetadata || { theaterId, orderId: orderId || "" };
+    const metadata = requestMetadata || { 
+      sellerId: sellerId || theaterId, // Use sellerId, fallback to theaterId for backward compat
+      orderId: orderId || "" 
+    };
 
     // Ensure orderId is in metadata even if not in top-level request
     if (!metadata.orderId && orderId) {
       metadata.orderId = orderId;
     }
 
-    // Ensure theaterId is in metadata
-    if (!metadata.theaterId && theaterId) {
-      metadata.theaterId = theaterId;
+    // Ensure sellerId is in metadata (frontend sends sellerId, not theaterId)
+    if (!metadata.sellerId) {
+      metadata.sellerId = sellerId || theaterId;
+    }
+
+    // Add baseUrl to metadata if provided (for QR code generation in emails)
+    // Frontend can send this to use localhost in dev, production URL in prod
+    if (baseUrl) {
+      metadata.baseUrl = baseUrl;
+      console.log("🌐 QR code base URL from frontend:", baseUrl);
+    }
+
+    // Add production and performance IDs if provided
+    if (productionId && !metadata.productionId) {
+      metadata.productionId = productionId;
+    }
+    if (performanceId && !metadata.performanceId) {
+      metadata.performanceId = performanceId;
+    }
+
+    // Add customer email if provided
+    if (customerEmail && !metadata.customerEmail) {
+      metadata.customerEmail = customerEmail;
+    }
+
+    // Add venue/location data if provided from frontend (separate fields)
+    if (venueName && !metadata.venueName) {
+      metadata.venueName = venueName;
+    }
+    if (venueAddress && !metadata.venueAddress) {
+      metadata.venueAddress = venueAddress;
+    }
+    if (venueCity && !metadata.venueCity) {
+      metadata.venueCity = venueCity;
+    }
+    if (venueState && !metadata.venueState) {
+      metadata.venueState = venueState;
+    }
+    if (venueZipCode && !metadata.venueZipCode) {
+      metadata.venueZipCode = venueZipCode;
+    }
+
+    // Add performance date/time if provided from frontend
+    if (performanceDate && !metadata.performanceDate) {
+      metadata.performanceDate = performanceDate;
+    }
+    if (performanceTime && !metadata.performanceTime) {
+      metadata.performanceTime = performanceTime;
+    }
+
+    // Add tickets data if provided (must be stringified for Stripe metadata)
+    // Frontend should send tickets as array, we'll stringify it for Stripe
+    if (tickets && !metadata.tickets) {
+      // Stringify tickets array for Stripe metadata (Stripe metadata values must be strings)
+      metadata.tickets = JSON.stringify(tickets);
+      console.log(`🎫 [Payment] Added ${tickets.length} tickets to metadata`);
     }
 
     console.log("📦 PaymentIntent metadata:", metadata);
@@ -36,17 +112,19 @@ router.post("/create-intent", async (req, res) => {
       console.log("🔗 Linking PaymentIntent to orderId:", metadata.orderId);
     }
 
-    if (!theaterId) {
-      console.log("❌ Missing theaterId");
-      return res.status(400).json({ error: "Missing theaterId" });
+    // Validate sellerId (frontend sends sellerId, not theaterId)
+    const sellerIdToUse = sellerId || theaterId;
+    if (!sellerIdToUse) {
+      console.log("❌ Missing sellerId or theaterId");
+      return res.status(400).json({ error: "Missing sellerId or theaterId" });
     }
     if (amountCents == null) {
       console.log("❌ Missing amountCents");
       return res.status(400).json({ error: "Missing amountCents" });
     }
 
-    console.log("🔍 Looking up venue:", theaterId);
-    const venues = await VenuesController.getVenuesBySellerId(theaterId);
+    console.log("🔍 Looking up venue:", sellerIdToUse);
+    const venues = await VenuesController.getVenuesBySellerId(sellerIdToUse);
     console.log("🔍 Venues found:", venues ? venues.length : 0);
 
     if (!venues || venues.length === 0) {

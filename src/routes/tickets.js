@@ -116,6 +116,13 @@ router.post("/:orderId/tickets", async (req, res) => {
     const ticketId = generateId();
     const now = new Date().toISOString();
 
+    // Generate order URL for QR code using order's viewToken and baseUrl
+    const orderBaseUrl = order?.baseUrl || process.env.APP_BASE_URL || "https://www.stagepasspro.com";
+    const viewToken = order?.viewToken || "";
+    const orderUrl = viewToken 
+      ? `${orderBaseUrl}/orders/${orderId}?token=${encodeURIComponent(viewToken)}`
+      : `${orderBaseUrl}/orders/${orderId}`;
+
     const ticket = {
       id: ticketId,
       seatId,
@@ -124,7 +131,7 @@ router.post("/:orderId/tickets", async (req, res) => {
       seatNumber,
       price: parseInt(price),
       status,
-      qrCode: `QR_${ticketId}_${Date.now()}`,
+      qrCode: orderUrl, // Store actual order URL with token for QR code
       createdAt: now
     };
 
