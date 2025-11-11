@@ -12,12 +12,12 @@ async function verifyFirebaseIdToken(req, res, next) {
     req.user = { uid: decoded.uid, email: decoded.email || null, decodedToken: decoded };
     next();
   } catch (err) {
-    console.error('Auth error:', err.message);
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
 
 module.exports = { verifyFirebaseIdToken };
+
 
 
 

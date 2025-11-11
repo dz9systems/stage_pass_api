@@ -12,7 +12,6 @@ async function verifyFirebaseIdToken(req, res, next) {
     req.user = { uid: decoded.uid, email: decoded.email || null, decodedToken: decoded };
     next();
   } catch (err) {
-    console.error("Auth error:", err.message);
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
@@ -29,7 +28,6 @@ async function optionalAuth(req, res, next) {
         req.user = { uid: decoded.uid, id: decoded.uid, email: decoded.email || null, decodedToken: decoded };
       } catch (err) {
         // Token invalid, but continue without authentication
-        console.warn("Optional auth: Invalid token:", err.message);
       }
     }
     next();

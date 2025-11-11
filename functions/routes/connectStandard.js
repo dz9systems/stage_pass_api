@@ -11,7 +11,6 @@ try {
     apiVersion: '2024-06-20',
   });
 } catch (error) {
-  console.error('Failed to initialize Stripe:', error.message);
   // Create a mock Stripe instance for development
   stripe = {
     oauth: {
@@ -63,7 +62,6 @@ router.get('/oauth/callback', async (req, res) => {
 
     res.send('Connected! You can close this tab.');
   } catch (e) {
-    console.error(e);
     res.status(500).send(e.message);
   }
 });

@@ -24,6 +24,8 @@ const ticketsRouter = require("./routes/tickets");
 const uploadRouter = require("./routes/upload");
 const subscriptionsRouter = require("./routes/subscriptions");
 const emailsRouter = require("./routes/emails");
+// Load Firestore triggers
+require("./triggers/usersOnCreate");
 
 const app = express();
 const path = require("path");

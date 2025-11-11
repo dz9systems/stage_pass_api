@@ -32,7 +32,6 @@ router.post("/:orderId/tickets/:ticketId/validate", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Ticket validation error:', error);
     res.status(400).json({ 
       success: false,
       error: 'Ticket validation failed',
@@ -69,7 +68,6 @@ router.get("/:orderId/tickets/:ticketId/status", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get ticket status error:', error);
     res.status(500).json({ 
       success: false,
       error: 'Failed to get ticket status',
@@ -136,7 +134,6 @@ router.post("/:orderId/tickets", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Ticket creation error:', error);
     res.status(500).json({ 
       error: 'Failed to create ticket',
       message: error.message 
@@ -183,7 +180,6 @@ router.get("/:orderId/tickets", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Tickets retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve tickets',
       message: error.message 
@@ -218,7 +214,6 @@ router.get("/:orderId/tickets/:ticketId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Ticket retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve ticket',
       message: error.message 
@@ -281,7 +276,6 @@ router.put("/:orderId/tickets/:ticketId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Ticket update error:', error);
     res.status(500).json({ 
       error: 'Failed to update ticket',
       message: error.message 
@@ -341,7 +335,6 @@ router.patch("/:orderId/tickets/:ticketId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Ticket patch error:', error);
     res.status(500).json({ 
       error: 'Failed to update ticket',
       message: error.message 
@@ -378,7 +371,6 @@ router.delete("/:orderId/tickets/:ticketId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Ticket deletion error:', error);
     res.status(500).json({ 
       error: 'Failed to delete ticket',
       message: error.message 

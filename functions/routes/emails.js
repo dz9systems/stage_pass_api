@@ -19,7 +19,6 @@ router.post("/greeting", async (req, res) => {
     await sendGreetingEmail({ to, name, subject });
     res.json({ success: true });
   } catch (err) {
-    console.error("Greeting email error:", err);
     res.status(500).json({ error: "Failed to send greeting", message: err.message });
   }
 });
@@ -32,7 +31,6 @@ router.post("/receipt", async (req, res) => {
     await sendReceiptEmail({ to, subject, order });
     res.json({ success: true });
   } catch (err) {
-    console.error("Receipt email error:", err);
     res.status(500).json({ error: "Failed to send receipt", message: err.message });
   }
 });
@@ -45,7 +43,6 @@ router.post("/ticket", async (req, res) => {
     await sendTicketEmail({ to, subject, ticket, order, performance, venue, qrContent });
     res.json({ success: true });
   } catch (err) {
-    console.error("Ticket email error:", err);
     res.status(500).json({ error: "Failed to send ticket", message: err.message });
   }
 });

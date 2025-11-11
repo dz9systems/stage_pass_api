@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { UsersController } = require("../controllers");
+const { sendGreetingEmail } = require("../services/email");
 
 // Generate unique ID
 function generateId() {
@@ -24,15 +25,15 @@ router.post("/", async (req, res) => {
 
     // Validate required fields
     if (!displayName || !email) {
-      return res.status(400).json({ 
-        error: "displayName and email are required" 
+      return res.status(400).json({
+        error: "displayName and email are required"
       });
     }
 
     // Validate role
     if (!['customer', 'seller', 'admin'].includes(role)) {
-      return res.status(400).json({ 
-        error: "role must be either 'customer', 'seller', or 'admin'" 
+      return res.status(400).json({
+        error: "role must be either 'customer', 'seller', or 'admin'"
       });
     }
 
@@ -62,10 +63,40 @@ router.post("/", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('User creation error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create user',
-      message: error.message 
+      message: error.message
+    });
+  }
+});
+
+// EMAIL - Send welcome email (frontend-triggered)
+router.post("/send-welcome", async (req, res) => {
+  try {
+    const { to, name, role = 'customer', subject } = req.body || {};
+
+    if (!to) {
+      return res.status(400).json({
+        error: "'to' email is required"
+      });
+    }
+
+    // role validation to keep parity with allowed roles
+    if (role && !['customer', 'seller', 'admin'].includes(role)) {
+      return res.status(400).json({
+        error: "role must be either 'customer', 'seller', or 'admin'"
+      });
+    }
+    await sendGreetingEmail({ to, name, role, subject });
+
+    res.status(200).json({
+      success: true,
+      message: 'Welcome email sent'
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to send welcome email',
+      message: error.message
     });
   }
 });
@@ -74,9 +105,9 @@ router.post("/", async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const { role, limit = 100, offset = 0 } = req.query;
-    
+
     const result = await UsersController.getAllUsers({ role }, { limit, offset });
-    
+
     // Check if result has pagination (from controller)
     if (result.pagination) {
       res.json({
@@ -99,10 +130,9 @@ router.get("/", async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Users retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve users',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -111,12 +141,12 @@ router.get("/", async (req, res) => {
 router.get("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     const user = await UsersController.getUserById(userId);
-    
+
     if (!user) {
-      return res.status(404).json({ 
-        error: 'User not found' 
+      return res.status(404).json({
+        error: 'User not found'
       });
     }
 
@@ -126,10 +156,9 @@ router.get("/:userId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('User retrieval error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to retrieve user',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -153,15 +182,15 @@ router.put("/:userId", async (req, res) => {
     // Check if user exists
     const existingUser = await UsersController.getUserById(userId);
     if (!existingUser) {
-      return res.status(404).json({ 
-        error: 'User not found' 
+      return res.status(404).json({
+        error: 'User not found'
       });
     }
 
     // Validate role if provided
     if (role && !['customer', 'seller', 'admin'].includes(role)) {
-      return res.status(400).json({ 
-        error: "role must be either 'customer', 'seller', or 'admin'" 
+      return res.status(400).json({
+        error: "role must be either 'customer', 'seller', or 'admin'"
       });
     }
 
@@ -188,10 +217,9 @@ router.put("/:userId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('User update error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to update user',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -205,15 +233,15 @@ router.patch("/:userId", async (req, res) => {
     // Check if user exists
     const existingUser = await UsersController.getUserById(userId);
     if (!existingUser) {
-      return res.status(404).json({ 
-        error: 'User not found' 
+      return res.status(404).json({
+        error: 'User not found'
       });
     }
 
     // Validate role if provided
     if (updates.role && !['customer', 'seller', 'admin'].includes(updates.role)) {
-      return res.status(400).json({ 
-        error: "role must be either 'customer', 'seller', or 'admin'" 
+      return res.status(400).json({
+        error: "role must be either 'customer', 'seller', or 'admin'"
       });
     }
 
@@ -236,10 +264,9 @@ router.patch("/:userId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('User patch error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to update user',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -248,12 +275,12 @@ router.patch("/:userId", async (req, res) => {
 router.delete("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     // Check if user exists
     const existingUser = await UsersController.getUserById(userId);
     if (!existingUser) {
-      return res.status(404).json({ 
-        error: 'User not found' 
+      return res.status(404).json({
+        error: 'User not found'
       });
     }
 
@@ -265,10 +292,9 @@ router.delete("/:userId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('User deletion error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to delete user',
-      message: error.message 
+      message: error.message
     });
   }
 });

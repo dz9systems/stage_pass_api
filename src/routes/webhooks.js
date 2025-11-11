@@ -30,7 +30,6 @@ async function resolveUserIdFromCustomer(stripeCustomerId, stripeAccount = null)
 
     return null;
   } catch (error) {
-    console.error(`❌ Failed to resolve userId from customer ${stripeCustomerId}:`, error.message);
     return null;
   }
 }
@@ -57,10 +56,6 @@ function calculateTokenExpiration() {
  */
 async function createOrderFromPaymentIntent(pi, getStripeOptions) {
   try {
-    console.log("📦 [Webhook] Creating order from PaymentIntent metadata:", {
-      paymentIntentId: pi.id,
-      metadata: pi.metadata
-    });
 
     // Extract order data from PaymentIntent metadata
     const metadata = pi.metadata || {};
@@ -138,13 +133,6 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
 
     // Create the order
     const createdOrder = await OrdersController.upsertOrder(order);
-    console.log("✅ [Webhook] Created order from PaymentIntent:", orderId);
-    console.log("📋 [Webhook] Order includes venue:", {
-      venueName: order.venueName,
-      venueAddress: order.venueAddress,
-      performanceDate: order.performanceDate,
-      performanceTime: order.performanceTime
-    });
 
     // Parse tickets from metadata if provided (tickets should be JSON string in metadata)
     let tickets = [];
@@ -156,18 +144,15 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
           : metadata.tickets;
         
         if (!Array.isArray(tickets)) {
-          console.warn("⚠️ [Webhook] Tickets metadata is not an array, skipping ticket creation");
           tickets = [];
         }
       } catch (parseError) {
-        console.error("❌ [Webhook] Failed to parse tickets from metadata:", parseError.message);
         tickets = [];
       }
     }
 
     // Create tickets subcollection if tickets data is provided
     if (tickets && tickets.length > 0) {
-      console.log(`📝 [Webhook] Creating ${tickets.length} tickets for order ${orderId}`);
       
       const orderUrl = `${baseUrl}/orders/${orderId}?token=${encodeURIComponent(viewToken)}`;
       const ticketIds = [];
@@ -189,19 +174,15 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
 
           await TicketsController.upsertTicket(orderId, ticket);
           ticketIds.push(ticketId);
-          console.log(`✅ [Webhook] Created ticket ${ticketId} for order ${orderId}`);
         } catch (ticketError) {
-          console.error(`❌ [Webhook] Failed to create ticket:`, ticketError.message);
         }
       }
 
       // Update order with ticket IDs
       if (ticketIds.length > 0) {
         await OrdersController.updateOrder(orderId, { tickets: ticketIds });
-        console.log(`✅ [Webhook] Updated order with ${ticketIds.length} ticket IDs`);
       }
     } else {
-      console.warn("⚠️ [Webhook] No tickets data in metadata - order created without tickets");
     }
 
     // Update PaymentIntent metadata with the new orderId
@@ -212,15 +193,12 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
           orderId: orderId
         }
       }, getStripeOptions());
-      console.log("✅ [Webhook] Updated PaymentIntent metadata with orderId:", orderId);
     } catch (updateError) {
-      console.error("⚠️ [Webhook] Failed to update PaymentIntent metadata:", updateError.message);
       // Continue anyway - order is created
     }
 
     return createdOrder;
   } catch (error) {
-    console.error("❌ [Webhook] Failed to create order from PaymentIntent:", error.message);
     throw error;
   }
 }
@@ -235,12 +213,7 @@ async function processWebhookEvent(event) {
   // Only log email-related events
   if (event.type === 'payment_intent.succeeded') {
     const pi = event.data?.object;
-    console.log("📧 [Email Debug] PaymentIntent succeeded:", {
-      id: pi?.id,
-      orderId: pi?.metadata?.orderId,
-      customerEmail: pi?.metadata?.customerEmail,
-      hasMetadata: !!pi?.metadata
-    });
+
   }
 
   // Helper to get Stripe API options with account context
@@ -257,36 +230,25 @@ async function processWebhookEvent(event) {
           try {
             pi = await stripe.paymentIntents.retrieve(pi.id);
           } catch (err) {
-            console.error("❌ [Email] Failed to fetch PaymentIntent from platform account:", err.message);
           }
         }
         
         // Check if orderId is missing or empty (not just falsy)
         let orderId = pi.metadata?.orderId;
         if (!orderId || orderId.trim() === '') {
-          console.warn("⚠️ [Webhook] PaymentIntent has no metadata.orderId or it's empty — attempting to create order from metadata.", {
-            paymentIntentId: pi.id,
-            hasMetadata: !!pi.metadata,
-            metadata: pi.metadata
-          });
-          
+
           try {
             // Create order from PaymentIntent metadata
             const createdOrder = await createOrderFromPaymentIntent(pi, getStripeOptions);
             orderId = createdOrder.id;
-            console.log("✅ [Webhook] Successfully created order from PaymentIntent:", orderId);
             
             // Re-fetch PaymentIntent to get updated metadata
             try {
               pi = await stripe.paymentIntents.retrieve(pi.id, getStripeOptions());
             } catch (err) {
-              console.warn("⚠️ [Webhook] Could not re-fetch PaymentIntent, using created order:", err.message);
             }
           } catch (createError) {
-            console.error("❌ [Webhook] Failed to create order from PaymentIntent — cannot send emails.", {
-              paymentIntentId: pi.id,
-              error: createError.message
-            });
+
             break;
           }
         }
@@ -300,7 +262,6 @@ async function processWebhookEvent(event) {
             // Fetch order, user, and tickets to send emails
             let order = await OrdersController.getOrderById(orderId);
             if (!order) {
-              console.error("❌ [Email] Order not found:", orderId);
               break;
             }
             
@@ -343,7 +304,6 @@ async function processWebhookEvent(event) {
                   const user = await UsersController.getUserById(order.userId);
                   toEmail = user?.email || null;
                 } catch (err) {
-                  console.error("❌ [Email] Failed to fetch user email:", err.message);
                 }
               }
             }
@@ -356,17 +316,11 @@ async function processWebhookEvent(event) {
                   toEmail = customer.email;
                 }
               } catch (err) {
-                console.error("❌ [Email] Failed to fetch Stripe customer email:", err.message);
               }
             }
             
             if (!toEmail) {
-              console.error("❌ [Email] No recipient email found for order", orderId, {
-                piMetadataEmail: pi.metadata?.customerEmail,
-                orderEmail: order?.email,
-                orderCustomerEmail: order?.customerEmail,
-                orderUserId: order?.userId
-              });
+
               break;
             }
 
@@ -376,24 +330,15 @@ async function processWebhookEvent(event) {
               try {
                 seller = await UsersController.getUserById(order.sellerId);
               } catch (err) {
-                console.error(`❌ [Email] Could not fetch seller info for ${order.sellerId}:`, err.message);
               }
             }
 
             // Send Order Summary email with tickets
             try {
-              console.log("📧 [Email] Attempting to send email to:", toEmail, "for order:", orderId);
               const tickets = await TicketsController.getAllTickets(orderId);
               
               // Debug: Log what's in the order object
-              console.log("📋 [Email] Order data:", {
-                orderId: order?.id || order?.orderId,
-                performanceId: order?.performanceId,
-                venueId: order?.venueId,
-                hasPerformance: !!order?.performance,
-                hasVenue: !!order?.venue
-              });
-              
+
               // Fetch performance and venue data if not already populated
               let performance = order.performance || null;
               let venue = order.venue || null;
@@ -405,14 +350,8 @@ async function processWebhookEvent(event) {
                 if (performanceId && performanceId.length > 0) {
                   try {
                     performance = await PerformancesController.getPerformanceById(performanceId);
-                    console.log("✅ [Email] Fetched performance data:", {
-                      id: performance?.id,
-                      name: performance?.productionName || performance?.title,
-                      date: performance?.startTime || performance?.dateTime || performance?.date
-                    });
+
                   } catch (err) {
-                    console.error("❌ [Email] Failed to fetch performance:", err.message);
-                    console.error("❌ [Email] Performance ID was:", performanceId);
                     // Create a minimal performance object from order data
                     // Combine date and time into proper ISO datetime string
                     let startTime = null;
@@ -431,7 +370,6 @@ async function processWebhookEvent(event) {
                     };
                   }
                 } else {
-                  console.warn("⚠️ [Email] Invalid performanceId in order:", order.performanceId);
                 }
               } else if (!performance) {
                 // Create a minimal performance object from order data if we have performanceId
@@ -452,7 +390,6 @@ async function processWebhookEvent(event) {
                     startTime: startTime
                   };
                 } else {
-                  console.warn("⚠️ [Email] Order has no performanceId or performance object");
                 }
               }
               
@@ -462,20 +399,12 @@ async function processWebhookEvent(event) {
                 if (venueId && venueId.length > 0) {
                   try {
                     venue = await VenuesController.getVenueById(venueId);
-                    console.log("✅ [Email] Fetched venue data:", {
-                      id: venue?.id,
-                      name: venue?.name,
-                      address: venue?.address
-                    });
+
                   } catch (err) {
-                    console.error("❌ [Email] Failed to fetch venue:", err.message);
-                    console.error("❌ [Email] Venue ID was:", venueId);
                   }
                 } else {
-                  console.warn("⚠️ [Email] Invalid venueId in order:", order.venueId);
                 }
               } else if (!venue) {
-                console.warn("⚠️ [Email] Order has no venueId or venue object");
               }
               
               // Also check if performance has venueId
@@ -484,9 +413,7 @@ async function processWebhookEvent(event) {
                 if (venueId && venueId.length > 0) {
                   try {
                     venue = await VenuesController.getVenueById(venueId);
-                    console.log("✅ [Email] Fetched venue from performance:", venue?.name);
                   } catch (err) {
-                    console.error("❌ [Email] Failed to fetch venue from performance:", err.message);
                   }
                 }
               }
@@ -500,7 +427,6 @@ async function processWebhookEvent(event) {
                   state: order.venueState || null,
                   zipCode: order.venueZipCode || null
                 };
-                console.log("✅ [Email] Using venue data from order:", venue.name);
               }
               
               // Ensure performance has productionName - fetch if needed
@@ -510,10 +436,8 @@ async function processWebhookEvent(event) {
                   const production = await ProductionsController.getProductionById(order.productionId);
                   if (production) {
                     performance.productionName = production.name || production.title;
-                    console.log("✅ [Email] Fetched production name:", performance.productionName);
                   }
                 } catch (err) {
-                  console.error("❌ [Email] Failed to fetch production:", err.message);
                 }
               }
               
@@ -560,24 +484,15 @@ async function processWebhookEvent(event) {
                 venue,
                 seller,
               });
-              console.log("✅ [Email] Order Summary email sent successfully to", toEmail, "for order", orderId);
             } catch (err) {
-              console.error("❌ [Email] Failed to send Order Summary email for order", orderId, "to", toEmail);
-              console.error("❌ [Email] Error:", err.message);
               if (err.response) {
-                console.error("❌ [Email] SendGrid response:", {
-                  statusCode: err.response.statusCode,
-                  body: err.response.body,
-                });
+
               }
               if (err.stack) {
-                console.error("❌ [Email] Stack trace:", err.stack);
               }
             }
           } catch (error) {
-            console.error(`❌ [Email] Failed to process order ${pi.metadata.orderId}:`, error.message);
             if (error.stack) {
-              console.error("❌ [Email] Stack trace:", error.stack);
             }
           }
         }
@@ -590,7 +505,6 @@ async function processWebhookEvent(event) {
             await OrdersController.updatePaymentStatus(pi.metadata.orderId, 'failed');
             await OrdersController.updateOrderStatus(pi.metadata.orderId, 'cancelled');
           } catch (error) {
-            console.error(`❌ [Email] Failed to update order ${pi.metadata.orderId}:`, error.message);
           }
         }
         break;
@@ -632,7 +546,6 @@ async function processWebhookEvent(event) {
 
             await SubscriptionsController.upsertUserSubscription(userId, localSubscription);
           } catch (error) {
-            console.error(`❌ Failed to update local subscription for user ${userId}:`, error.message);
           }
         }
         break;
@@ -662,7 +575,6 @@ async function processWebhookEvent(event) {
               });
             }
           } catch (error) {
-            console.error(`❌ Failed to update local subscription for user ${userId}:`, error.message);
           }
         }
         break;
@@ -690,7 +602,6 @@ async function processWebhookEvent(event) {
               });
             }
           } catch (error) {
-            console.error(`❌ Failed to update local subscription for user ${userId}:`, error.message);
           }
         }
         break;
@@ -716,7 +627,6 @@ async function processWebhookEvent(event) {
                 userId = subscription.metadata.userId;
               }
             } catch (err) {
-              console.error(`❌ Failed to retrieve subscription for invoice ${invoice.id}:`, err.message);
             }
           }
 
@@ -731,7 +641,6 @@ async function processWebhookEvent(event) {
                 });
               }
             } catch (error) {
-              console.error(`❌ Failed to update subscription payment for user ${userId}:`, error.message);
             }
           }
         }
@@ -758,7 +667,6 @@ async function processWebhookEvent(event) {
                 userId = subscription.metadata.userId;
               }
             } catch (err) {
-              console.error(`❌ Failed to retrieve subscription for invoice ${invoice.id}:`, err.message);
             }
           }
 
@@ -773,7 +681,6 @@ async function processWebhookEvent(event) {
                 });
               }
             } catch (error) {
-              console.error(`❌ Failed to update subscription payment failure for user ${userId}:`, error.message);
             }
           }
         }
@@ -784,9 +691,7 @@ async function processWebhookEvent(event) {
     }
 
   } catch (error) {
-    console.error("❌ [Email] Error processing webhook event:", event.type, error.message);
     if (error.stack) {
-      console.error("❌ [Email] Stack trace:", error.stack);
     }
   }
 }
@@ -841,7 +746,6 @@ router.post(
           process.env.STRIPE_WEBHOOK_SECRET
         );
       } catch (err) {
-        console.error("❌ [Email] Webhook signature verification failed:", err.message);
 
         // Only allow unverified events in non-production environments
         if (process.env.NODE_ENV === 'production') {
@@ -852,7 +756,6 @@ router.post(
         try {
           event = JSON.parse(req.body.toString());
         } catch (parseErr) {
-          console.error("❌ [Email] Failed to parse webhook body:", parseErr.message);
           return res.status(400).send(`Webhook Error: ${err.message}`);
         }
       }
@@ -865,18 +768,14 @@ router.post(
       // Use setImmediate to ensure response is fully sent before processing
       setImmediate(() => {
         processWebhookEvent(event).catch(error => {
-          console.error("❌ [Email] Unhandled error in async webhook processing:", error.message);
           if (error.stack) {
-            console.error("❌ [Email] Stack trace:", error.stack);
           }
         });
       });
 
     } catch (handlerError) {
       // Catch any unhandled errors in the webhook handler
-      console.error("❌ [Email] Unhandled webhook error:", handlerError.message);
       if (handlerError.stack) {
-        console.error("❌ [Email] Stack trace:", handlerError.stack);
       }
       
       // Always return 200 to Stripe so it doesn't retry

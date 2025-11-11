@@ -123,8 +123,6 @@ class SeatmapsController {
         .doc(seatmapId);
       const updateDataWithTimestamp = addTimestamps(updateData, true);
       await seatmapRef.update(updateDataWithTimestamp);
-      console.log(`Seatmap ${seatmapId} updated successfully.`);
-      console.log('Update Data:', updateDataWithTimestamp);
       return { id: seatmapId, ...updateDataWithTimestamp };
     } catch (error) {
       throw new Error(`Failed to update seatmap: ${error.message}`);

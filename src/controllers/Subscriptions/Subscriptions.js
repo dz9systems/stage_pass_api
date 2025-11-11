@@ -206,7 +206,6 @@ class SubscriptionsController {
       const existingPlans = await this.getAllSubscriptionPlans();
       
       if (existingPlans.length === 0) {
-        console.log('Initializing default subscription plans...');
         
         const defaultPlans = [
           {
@@ -239,7 +238,6 @@ class SubscriptionsController {
           await this.createSubscriptionPlan(plan);
         }
         
-        console.log('Default subscription plans initialized successfully');
         return defaultPlans;
       }
       

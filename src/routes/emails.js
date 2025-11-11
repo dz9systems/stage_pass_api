@@ -20,8 +20,13 @@ router.post("/greeting", async (req, res) => {
     await sendGreetingEmail({ to, name, subject });
     res.json({ success: true });
   } catch (err) {
-    console.error("Greeting email error:", err);
-    res.status(500).json({ error: "Failed to send greeting", message: err.message });
+    const statusCode = err.response?.statusCode || 500;
+    const errorMessage = err.message || "Failed to send greeting";
+    res.status(statusCode).json({
+      error: "Failed to send greeting",
+      message: errorMessage,
+      details: err.response?.body?.errors || null
+    });
   }
 });
 
@@ -33,8 +38,13 @@ router.post("/receipt", async (req, res) => {
     await sendReceiptEmail({ to, subject, order });
     res.json({ success: true });
   } catch (err) {
-    console.error("Receipt email error:", err);
-    res.status(500).json({ error: "Failed to send receipt", message: err.message });
+    const statusCode = err.response?.statusCode || 500;
+    const errorMessage = err.message || "Failed to send receipt";
+    res.status(statusCode).json({
+      error: "Failed to send receipt",
+      message: errorMessage,
+      details: err.response?.body?.errors || null
+    });
   }
 });
 
@@ -46,7 +56,6 @@ router.post("/ticket", async (req, res) => {
     await sendTicketEmail({ to, subject, ticket, order, performance, venue, qrContent });
     res.json({ success: true });
   } catch (err) {
-    console.error("Ticket email error:", err);
     // Include SendGrid error details if available
     const statusCode = err.response?.statusCode || 500;
     const errorMessage = err.message || "Failed to send ticket";

@@ -8,18 +8,23 @@ if (process.env.SENDGRID_API_KEY) {
     if (process.env.SENDGRID_DATA_RESIDENCY === "eu") {
       sgMail.setDataResidency("eu");
     }
-    console.log("✅ [Email] SendGrid initialized successfully");
   } catch (err) {
-    console.error("❌ [Email] Failed to initialize SendGrid:", err.message);
   }
 } else {
-  console.error("❌ [Email] SENDGRID_API_KEY is not set. Emails will fail to send.");
 }
 
 const DEFAULT_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || process.env.FROM_EMAIL || "no-reply@example.com";
 const LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/stage-pass-b1d9b.firebasestorage.app/o/STAGE%20PASS%20LOGO.png?alt=media&token=6814dd6b-eeca-47dc-95e2-55159801a3eb'
 
-console.log("📧 [Email] Using default FROM email:", DEFAULT_FROM_EMAIL);
+// Optional default reply-to email (e.g., your Gmail inbox)
+const DEFAULT_REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL || process.env.SUPPORT_EMAIL || null;
+
+// Basic config logging (once on boot)
+try {
+  const maskedKey = process.env.SENDGRID_API_KEY ? `${process.env.SENDGRID_API_KEY.slice(0, 4)}...` : 'not-set';
+  // Only minimal, non-sensitive info
+  
+} catch (_) {}
 
 // Simple email validation
 function isValidEmail(email) {
@@ -384,7 +389,78 @@ function buildOrderSummaryTemplate({ order, tickets = [], performance, venue, se
 }
 
 // Build Welcome email template matching the design
-function buildWelcomeTemplate({ name = "there" }) {
+function buildWelcomeTemplate({ name = "there", role }) {
+  // Format name for greeting - use first name if available, otherwise "there"
+  const displayName = name && name !== "there" ? name.split(' ')[0] : "";
+  const headingName = name && name !== "there" ? `, ${name.split(' ')[0]}` : "";
+  const supportEmail = (DEFAULT_REPLY_TO_EMAIL && isValidEmail(DEFAULT_REPLY_TO_EMAIL))
+    ? DEFAULT_REPLY_TO_EMAIL
+    : DEFAULT_FROM_EMAIL;
+  
+  // Seller-specific content (exact copy requested)
+  const sellerContentHtml = `
+                  <p style="margin: 0 0 16px 0;">Hi${displayName ? ` ${displayName}` : ""},</p>
+
+                  <p style="margin: 0 0 16px 0;">Welcome to <strong>StagePass Pro</strong> — we're thrilled to have you on board!</p>
+
+                  <p style="margin: 0 0 16px 0;">StagePass Pro is built to help theaters like yours simplify ticketing, manage seat maps effortlessly, and keep every production running smoothly. You now have access to powerful tools that put full control of your venue in your hands — from customizable seating charts to real-time sales analytics.</p>
+
+                  <h3 style="margin: 30px 0 15px 0; font-size: 18px; font-weight: bold; color: #000000;">Here's how to get started:</h3>
+
+                  <ol style="margin: 0 0 16px 0; padding-left: 20px; line-height: 1.8; color: #333333;">
+                    <li style="margin-bottom: 8px;">Log in to your dashboard and set up your first production.</li>
+                    <li style="margin-bottom: 8px;">Customize your seat map and pricing tiers.</li>
+                    <li style="margin-bottom: 8px;">Start selling tickets and track performance in real time.</li>
+                  </ol>
+
+                  <p style="margin: 30px 0 16px 0;">If you ever need help, our support team is always here for you — just reach out to <a href="mailto:${supportEmail}" style="color: #0066cc; text-decoration: none;">${supportEmail}</a>.</p>
+
+                  <p style="margin: 20px 0 16px 0; font-weight: bold; color: #000000;">Welcome to the future of theater ticketing.</p>
+
+                  <p style="margin: 30px 0 0 0;"><strong>The StagePass Pro Team</strong></p>
+  `;
+
+  // Default content (non-seller roles)
+  const defaultIntro = role === 'admin'
+    ? `You're set up with administrative access to manage venues, shows, users, and operations across StagePass Pro.`
+    : `You're all set to discover shows and purchase tickets with a smooth checkout and instant email delivery.`;
+
+  const defaultSteps = role === 'admin'
+    ? [
+        'Review current organizations, venues, and productions.',
+        'Invite team members and assign roles.',
+        'Monitor sales and system activity.'
+      ]
+    : [
+        'Browse upcoming shows from your favorite venues.',
+        'Choose your seats and complete checkout.',
+        'Watch for your ticket email with a QR code.'
+      ];
+
+  const defaultContentHtml = `
+                  <p style="margin: 0 0 16px 0;">Hi${displayName ? ` ${displayName}` : ""},</p>
+
+                  <p style="margin: 0 0 16px 0;">Welcome to <strong>StagePass Pro</strong> — we're thrilled to have you on board!</p>
+
+                  <p style="margin: 0 0 16px 0;">${defaultIntro}</p>
+
+                  <h3 style="margin: 30px 0 15px 0; font-size: 18px; font-weight: bold; color: #000000;">Here's how to get started:</h3>
+
+                  <ol style="margin: 0 0 16px 0; padding-left: 20px; line-height: 1.8; color: #333333;">
+                    <li style="margin-bottom: 8px;">${defaultSteps[0]}</li>
+                    <li style="margin-bottom: 8px;">${defaultSteps[1]}</li>
+                    <li style="margin-bottom: 8px;">${defaultSteps[2]}</li>
+                  </ol>
+
+                  <p style="margin: 30px 0 16px 0;">If you ever need help, our support team is always here for you — just reach out to <a href="mailto:${supportEmail}" style="color: #0066cc; text-decoration: none;">${supportEmail}</a>.</p>
+
+                  <p style="margin: 20px 0 16px 0; font-weight: bold; color: #000000;">Welcome to the future of theater ticketing.</p>
+
+                  <p style="margin: 30px 0 0 0;"><strong>The StagePass Pro Team</strong></p>
+  `;
+
+  const contentHtml = role === 'seller' ? sellerContentHtml : defaultContentHtml;
+  
   return `
     <!DOCTYPE html>
     <html>
@@ -413,32 +489,14 @@ function buildWelcomeTemplate({ name = "there" }) {
               <!-- Heading -->
               <tr>
                 <td align="center" style="padding-bottom: 20px;">
-                  <h1 style="margin: 0; font-size: 32px; font-weight: bold; color: #000;">Thanks for signing up${name && name !== "there" ? `, ${name}` : ""}!</h1>
+                  <h1 style="margin: 0; font-size: 32px; font-weight: bold; color: #000000;">Thanks for signing up${headingName}!</h1>
                 </td>
               </tr>
 
               <!-- Content -->
               <tr>
-                <td style="padding: 0 20px 30px 20px; font-size: 16px; line-height: 1.6; color: #333;">
-                  <p>Hi,</p>
-
-                  <p>Welcome to <strong>StagePass Pro</strong> — we're thrilled to have you on board!</p>
-
-                  <p>StagePass Pro is built to help theaters like yours simplify ticketing, manage seat maps effortlessly, and keep every production running smoothly. You now have access to powerful tools that put full control of your venue in your hands — from customizable seating charts to real-time sales analytics.</p>
-
-                  <h3 style="margin-top: 30px; margin-bottom: 15px; font-size: 18px; font-weight: bold;">Here's how to get started:</h3>
-
-                  <ol style="padding-left: 20px; line-height: 1.8;">
-                    <li>Log in to your dashboard and set up your first production.</li>
-                    <li>Customize your seat map and pricing tiers.</li>
-                    <li>Start selling tickets and track performance in real time.</li>
-                  </ol>
-
-                  <p style="margin-top: 30px;">If you ever need help, our support team is always here for you — just reach out to <a href="mailto:stagepasspro@gmail.com" style="color: #0066cc;">stagepasspro@gmail.com</a>.</p>
-
-                  <p style="margin-top: 20px; font-weight: bold;">Welcome to the future of theater ticketing.</p>
-
-                  <p style="margin-top: 30px;">The StagePass Pro Team</p>
+                <td style="padding: 0 20px 30px 20px; font-size: 16px; line-height: 1.6; color: #333333;">
+                  ${contentHtml}
                 </td>
               </tr>
             </table>
@@ -450,8 +508,8 @@ function buildWelcomeTemplate({ name = "there" }) {
   `;
 }
 
-async function sendGreetingEmail({ to, name, subject = "Thanks for signing up!" }) {
-  const html = buildWelcomeTemplate({ name: name || "there" });
+async function sendGreetingEmail({ to, name, role, subject = "Thanks for signing up!" }) {
+  const html = buildWelcomeTemplate({ name: name || "there", role });
 
   const senderName = buildSenderName(null);
   const msg = {
@@ -465,17 +523,21 @@ async function sendGreetingEmail({ to, name, subject = "Thanks for signing up!" 
     html,
   };
 
+  // Add default Reply-To if configured
+  if (DEFAULT_REPLY_TO_EMAIL && isValidEmail(DEFAULT_REPLY_TO_EMAIL)) {
+    msg.replyTo = DEFAULT_REPLY_TO_EMAIL;
+  }
+
   try {
     await sgMail.send(msg);
-    console.log("✅ [Email] Greeting email sent successfully to", to);
     return { success: true };
   } catch (error) {
-    console.error("❌ [Email] Failed to send greeting email to", to, ":", error.message);
-    if (error.response) {
-      console.error("❌ [Email] SendGrid response:", {
-        statusCode: error.response.statusCode,
-        body: error.response.body,
-      });
+    // Surface SendGrid error details if present
+    const statusCode = error?.response?.statusCode;
+    const sgErrors = error?.response?.body?.errors;
+    if (sgErrors && Array.isArray(sgErrors)) {
+      const messages = sgErrors.map(e => e.message || e.field || 'Unknown error').join('; ');
+      throw new Error(`SendGrid error: ${messages}`);
     }
     throw error;
   }
@@ -500,22 +562,16 @@ async function sendReceiptEmail({ to, subject = "Thank you for your order!", ord
   // Add replyTo if provided
   if (replyTo && isValidEmail(replyTo)) {
     msg.replyTo = replyTo;
+  } else if (DEFAULT_REPLY_TO_EMAIL && isValidEmail(DEFAULT_REPLY_TO_EMAIL)) {
+    msg.replyTo = DEFAULT_REPLY_TO_EMAIL;
   } else if (seller?.email && isValidEmail(seller.email)) {
     msg.replyTo = seller.email;
   }
 
   try {
     await sgMail.send(msg);
-    console.log("✅ [Email] Receipt email sent successfully to", to, "for order", order?.id || order?.orderId);
     return { success: true };
   } catch (error) {
-    console.error("❌ [Email] Failed to send receipt email to", to, ":", error.message);
-    if (error.response) {
-      console.error("❌ [Email] SendGrid response:", {
-        statusCode: error.response.statusCode,
-        body: error.response.body,
-      });
-    }
     throw error;
   }
 }
@@ -639,7 +695,6 @@ async function sendTicketEmail({
       throw new Error("Failed to generate QR code");
     }
   } catch (qrError) {
-    console.error("❌ [Email] QR code generation error:", qrError.message);
     throw new Error(`Failed to generate QR code: ${qrError.message}`);
   }
 
@@ -681,30 +736,13 @@ async function sendTicketEmail({
     msg.replyTo = seller.email;
   }
 
-  console.log("📧 [Email] Sending single ticket email", {
-    to,
-    from: DEFAULT_FROM_EMAIL,
-    subject,
-    ticketId,
-    qrDataLength: qrData.length
-  });
-
   try {
     await sgMail.send(msg);
-    console.log("✅ [Email] Ticket email sent successfully to", to);
     return { success: true };
   } catch (error) {
-    console.error("❌ [Email] Failed to send ticket email to", to, ":", error.message);
 
-    // Log detailed SendGrid error information
-    if (error.response) {
-      console.error("❌ [Email] SendGrid response:", {
-        statusCode: error.response.statusCode,
-        body: error.response.body,
-      });
-
-      // If SendGrid provides error details, include them
-      if (error.response.body && error.response.body.errors) {
+    // If SendGrid provides error details, include them
+    if (error.response && error.response.body && error.response.body.errors) {
         const sendGridErrors = error.response.body.errors;
         const errorMessages = sendGridErrors.map(e => {
           const field = e.field || '';
@@ -725,7 +763,6 @@ async function sendTicketEmail({
         });
 
         throw new Error(`SendGrid error: ${errorMessages.join('; ')}`);
-      }
     }
 
     throw error;
@@ -773,7 +810,6 @@ module.exports = {
           qrCodeCid: qrCid
         });
       } catch (qrError) {
-        console.error("❌ [Email] Failed to generate QR code for ticket", ticket?.id, ":", qrError.message);
         // Continue with ticket even if QR code generation fails
         ticketsWithQRCodes.push({
           ...ticket,
@@ -784,20 +820,6 @@ module.exports = {
     }
 
     // Debug logging to see what data we have
-    console.log("📧 [Email] Building order summary template with:", {
-      orderId: order?.id || order?.orderId,
-      ticketsCount: ticketsWithQRCodes.length,
-      attachmentsCount: attachments.length,
-      hasPerformance: !!performance,
-      hasVenue: !!venue,
-      performanceDate: performance?.startTime || performance?.dateTime || performance?.date,
-      venueName: venue?.name || performance?.venueName,
-      ticketsWithQR: ticketsWithQRCodes.map(t => ({
-        id: t.id,
-        hasCid: !!t.qrCodeCid,
-        cid: t.qrCodeCid
-      }))
-    });
 
     // Use Order Summary template with tickets
     const html = buildOrderSummaryTemplate({ order, tickets: ticketsWithQRCodes, performance, venue, seller });
@@ -818,30 +840,21 @@ module.exports = {
     // Add replyTo if provided
     if (replyTo && isValidEmail(replyTo)) {
       msg.replyTo = replyTo;
+    } else if (DEFAULT_REPLY_TO_EMAIL && isValidEmail(DEFAULT_REPLY_TO_EMAIL)) {
+      msg.replyTo = DEFAULT_REPLY_TO_EMAIL;
     } else if (seller?.email && isValidEmail(seller.email)) {
       msg.replyTo = seller.email;
     }
 
     try {
       await sgMail.send(msg);
-      console.log("✅ [Email] Order Summary email sent successfully to", to, "with", ticketsWithQRCodes.length, "tickets");
       return { success: true };
     } catch (error) {
-      console.error("❌ [Email] Failed to send Order Summary email to", to, ":", error.message);
-
-      // Log detailed SendGrid error information
-      if (error.response) {
-        console.error("❌ [Email] SendGrid response:", {
-          statusCode: error.response.statusCode,
-          body: error.response.body,
-        });
-
-        // If SendGrid provides error details, include them
-        if (error.response.body && error.response.body.errors) {
-          const sendGridErrors = error.response.body.errors;
-          const errorMessages = sendGridErrors.map(e => e.message || e.field || 'Unknown error');
-          throw new Error(`SendGrid error: ${errorMessages.join('; ')}`);
-        }
+      // If SendGrid provides error details, include them
+      if (error.response && error.response.body && error.response.body.errors) {
+        const sendGridErrors = error.response.body.errors;
+        const errorMessages = sendGridErrors.map(e => e.message || e.field || 'Unknown error');
+        throw new Error(`SendGrid error: ${errorMessages.join('; ')}`);
       }
 
       throw error;

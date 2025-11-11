@@ -56,7 +56,6 @@ router.post("/:venueId/seatmaps", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Seatmap creation error:', error);
     res.status(500).json({
       error: 'Failed to create seatmap',
       message: error.message
@@ -102,7 +101,6 @@ router.get("/:venueId/seatmaps", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Seatmaps retrieval error:', error);
     res.status(500).json({
       error: 'Failed to retrieve seatmaps',
       message: error.message
@@ -137,7 +135,6 @@ router.get("/:venueId/seatmaps/:seatmapId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Seatmap retrieval error:', error);
     res.status(500).json({
       error: 'Failed to retrieve seatmap',
       message: error.message
@@ -191,7 +188,6 @@ router.put("/:venueId/seatmaps/:seatmapId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Seatmap update error:', error);
     res.status(500).json({
       error: 'Failed to update seatmap',
       message: error.message
@@ -240,7 +236,6 @@ router.patch("/:venueId/seatmaps/:seatmapId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Seatmap patch error:', error);
     res.status(500).json({
       error: 'Failed to update seatmap',
       message: error.message
@@ -277,7 +272,6 @@ router.delete("/:venueId/seatmaps/:seatmapId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Seatmap deletion error:', error);
     res.status(500).json({
       error: 'Failed to delete seatmap',
       message: error.message

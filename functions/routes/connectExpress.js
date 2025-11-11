@@ -10,7 +10,6 @@ try {
     apiVersion: "2024-06-20",
   });
 } catch (error) {
-  console.error("Failed to initialize Stripe:", error.message);
   // Create a mock Stripe instance for development
   stripe = {
     accounts: {
@@ -52,10 +51,8 @@ router.delete("/account", async (req, res) => {
         accountType: null,
       });
     }
-    console.log('deleted::', deleted);
     res.json(deleted);
   } catch (e) {
-    console.error(e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -84,7 +81,6 @@ router.post("/create-account", async (req, res) => {
 
     res.json({ accountId: account.id });
   } catch (e) {
-    console.error(e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -93,7 +89,6 @@ router.post("/create-account", async (req, res) => {
 router.post("/onboard-link", async (req, res) => {
   try {
     const { accountId } = req.body;
-    console.log('accountId::', accountId);
     const link = await stripe.accountLinks.create({
       account: accountId,
       type: "account_onboarding",
@@ -103,7 +98,6 @@ router.post("/onboard-link", async (req, res) => {
 
     res.json({ url: link.url });
   } catch (e) {
-    console.error(e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -131,7 +125,6 @@ router.get("/status", async (req, res) => {
       disabled_reason: acct.requirements?.disabled_reason,
     });
   } catch (e) {
-    console.error(e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -149,7 +142,6 @@ router.post("/login-link", async (req, res) => {
     const login = await stripe.accounts.createLoginLink(seller.stripeAccountId);
     res.json({ url: login.url });
   } catch (e) {
-    console.error(e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -201,7 +193,6 @@ router.delete("/accounts/all", async (req, res) => {
           accountId: account.id,
         });
       } catch (error) {
-        console.error(`Failed to delete account ${account.id}:`, error);
         results.errors.push({
           accountId: account.id,
           error: error.message
@@ -214,7 +205,6 @@ router.delete("/accounts/all", async (req, res) => {
       ...results
     });
   } catch (e) {
-    console.error(e);
     res.status(500).json({ error: e.message });
   }
 });

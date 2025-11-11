@@ -81,12 +81,9 @@ async function ensureBucketExists() {
   try {
     const [exists] = await bucket.exists();
     if (!exists) {
-      console.log('Creating default storage bucket...');
       await bucket.create();
-      console.log('Default storage bucket created successfully');
     }
   } catch (error) {
-    console.error('Error checking/creating bucket:', error);
   }
 }
 
@@ -273,11 +270,9 @@ router.post('/', upload.single('file'), async (req, res) => {
         });
         url = signedUrl;
       } catch (signError) {
-        console.error('Error generating signed URL:', signError.message);
         // Fallback to public URL if signed URL generation fails
         // In production, you should ensure credentials are properly configured
         url = `https://storage.googleapis.com/${bucket.name}/${encodeURI(filePath)}`;
-        console.warn('Using public URL as fallback. Configure Firebase credentials for private file access.');
       }
     }
 
@@ -301,7 +296,6 @@ router.post('/', upload.single('file'), async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Upload error:', err);
     return res.status(500).json({
       success: false,
       error: 'Failed to upload file',
@@ -312,7 +306,6 @@ router.post('/', upload.single('file'), async (req, res) => {
 
 // POST /api/upload/multiple - Upload multiple files
 router.post('/multiple', upload.array('files', 10), async (req, res) => {
-  console.log('Upload request body:', req.body);
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -392,7 +385,6 @@ router.post('/multiple', upload.array('files', 10), async (req, res) => {
         });
 
       } catch (fileError) {
-        console.error(`Error uploading file ${file.originalname}:`, fileError);
         uploadedFiles.push({
           name: file.originalname,
           error: fileError.message
@@ -407,7 +399,6 @@ router.post('/multiple', upload.array('files', 10), async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Multiple upload error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to upload files',
@@ -449,7 +440,6 @@ router.get('/', async (req, res) => {
               expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
             });
           } catch (signError) {
-            console.error(`Error generating signed URL for ${file.name}:`, signError.message);
             // Fallback to public URL if available
             const isPublic = metadata.acl?.some(acl => acl.entity === 'allUsers');
             signedUrl = isPublic 
@@ -473,7 +463,6 @@ router.get('/', async (req, res) => {
             uploadedBy: metadata.metadata?.uploadedBy
           };
         } catch (error) {
-          console.error(`Error getting metadata for ${file.name}:`, error);
           return null;
         }
       })
@@ -492,7 +481,6 @@ router.get('/', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('List files error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to list files',
@@ -526,7 +514,6 @@ router.get('/:fileId', async (req, res) => {
         expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
       });
     } catch (signError) {
-      console.error('Error generating signed URL:', signError.message);
       // Fallback to public URL if available
       const isPublic = metadata.acl?.some(acl => acl.entity === 'allUsers');
       signedUrl = isPublic 
@@ -556,7 +543,6 @@ router.get('/:fileId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get file error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get file information',
@@ -592,7 +578,6 @@ router.delete('/:fileId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Delete file error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to delete file',

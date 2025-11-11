@@ -69,7 +69,6 @@ router.post("/", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Production creation error:', error);
     res.status(500).json({
       error: 'Failed to create production',
       message: error.message
@@ -107,7 +106,6 @@ router.get("/", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Productions retrieval error:', error);
     res.status(500).json({
       error: 'Failed to retrieve productions',
       message: error.message
@@ -134,7 +132,6 @@ router.get("/:productionId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Production retrieval error:', error);
     res.status(500).json({
       error: 'Failed to retrieve production',
       message: error.message
@@ -150,7 +147,6 @@ router.get("/seller/:sellerId", async (req, res) => {
 
     const productions = await ProductionsController.getProductionsBySellerId(sellerId, { status });
 
-    console.log('Total productions found for seller:', productions);
 
     // Apply pagination
     const startIndex = parseInt(offset);
@@ -169,7 +165,6 @@ router.get("/seller/:sellerId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Seller productions retrieval error:', error);
     res.status(500).json({
       error: 'Failed to retrieve seller productions',
       message: error.message
@@ -237,7 +232,6 @@ router.put("/:productionId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Production update error:', error);
     res.status(500).json({
       error: 'Failed to update production',
       message: error.message
@@ -285,7 +279,6 @@ router.patch("/:productionId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Production patch error:', error);
     res.status(500).json({
       error: 'Failed to update production',
       message: error.message
@@ -314,7 +307,6 @@ router.delete("/:productionId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Production deletion error:', error);
     res.status(500).json({
       error: 'Failed to delete production',
       message: error.message

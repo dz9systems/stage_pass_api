@@ -54,7 +54,6 @@ router.post("/", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Venue creation error:', error);
     res.status(500).json({ 
       error: 'Failed to create venue',
       message: error.message 
@@ -94,7 +93,6 @@ router.get("/", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Venues retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve venues',
       message: error.message 
@@ -121,7 +119,6 @@ router.get("/:venueId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Venue retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve venue',
       message: error.message 
@@ -161,7 +158,6 @@ router.get("/seller/:sellerId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Seller venues retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve seller venues',
       message: error.message 
@@ -214,7 +210,6 @@ router.put("/:venueId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Venue update error:', error);
     res.status(500).json({ 
       error: 'Failed to update venue',
       message: error.message 
@@ -255,7 +250,6 @@ router.patch("/:venueId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Venue patch error:', error);
     res.status(500).json({ 
       error: 'Failed to update venue',
       message: error.message 
@@ -284,7 +278,6 @@ router.delete("/:venueId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Venue deletion error:', error);
     res.status(500).json({ 
       error: 'Failed to delete venue',
       message: error.message 

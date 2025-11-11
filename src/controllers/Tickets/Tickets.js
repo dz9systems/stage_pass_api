@@ -73,7 +73,6 @@ class TicketsController {
       } catch (indexError) {
         // If index is not ready yet, fetch without orderBy and sort in memory
         if (indexError.message && indexError.message.includes('index')) {
-          console.warn(`⚠️ Firestore index not ready yet, fetching tickets without orderBy and sorting in memory`);
           const snapshot = await query.get();
           tickets = docsToObjects(snapshot.docs);
           // Sort in memory: section, row, seatNumber

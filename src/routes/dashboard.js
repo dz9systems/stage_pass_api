@@ -65,7 +65,6 @@ router.get("/accounts", async (req, res) => {
             currency: balanceData.available[0]?.currency || 'usd'
           };
         } catch (balanceError) {
-          console.warn(`Could not retrieve balance for account ${theater.stripeAccountId}:`, balanceError.message);
         }
 
         // Get recent charges/transactions (last 10)
@@ -86,7 +85,6 @@ router.get("/accounts", async (req, res) => {
             customer: charge.customer
           }));
         } catch (transactionError) {
-          console.warn(`Could not retrieve transactions for account ${theater.stripeAccountId}:`, transactionError.message);
         }
 
         const accountData = {
@@ -130,7 +128,6 @@ router.get("/accounts", async (req, res) => {
         }
 
       } catch (accountError) {
-        console.error(`Error retrieving account ${theater.stripeAccountId}:`, accountError.message);
         
         // Add account with error status
         dashboardData.accounts.push({
@@ -159,7 +156,6 @@ router.get("/accounts", async (req, res) => {
     res.json(dashboardData);
 
   } catch (error) {
-    console.error('Dashboard data retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve dashboard data',
       message: error.message 
@@ -214,7 +210,6 @@ router.get("/accounts/:theaterId", async (req, res) => {
         currency: balanceData.available[0]?.currency || 'usd'
       };
     } catch (balanceError) {
-      console.warn(`Could not retrieve balance for account ${theater.stripeAccountId}:`, balanceError.message);
     }
 
     // Get recent charges/transactions (last 20)
@@ -236,7 +231,6 @@ router.get("/accounts/:theaterId", async (req, res) => {
         receipt_url: charge.receipt_url
       }));
     } catch (transactionError) {
-      console.warn(`Could not retrieve transactions for account ${theater.stripeAccountId}:`, transactionError.message);
     }
 
     res.json({
@@ -260,7 +254,6 @@ router.get("/accounts/:theaterId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Account details retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve account details',
       message: error.message 
@@ -321,7 +314,6 @@ router.get("/products", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Products retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve products',
       message: error.message 
@@ -404,7 +396,6 @@ router.get("/payments", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Payments retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve payments',
       message: error.message 
@@ -453,7 +444,6 @@ router.get("/customers", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Customers retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve customers',
       message: error.message 
@@ -523,7 +513,6 @@ router.get("/subscriptions", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Subscriptions retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve subscriptions',
       message: error.message 
@@ -638,7 +627,6 @@ router.get("/overview", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Overview data retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve overview data',
       message: error.message 
@@ -705,7 +693,6 @@ router.get("/connected-accounts/:accountId/products", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Connected account products retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve products for connected account',
       message: error.message 
@@ -793,7 +780,6 @@ router.get("/connected-accounts/:accountId/payments", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Connected account payments retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve payments for connected account',
       message: error.message 
@@ -846,7 +832,6 @@ router.get("/connected-accounts/:accountId/customers", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Connected account customers retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve customers for connected account',
       message: error.message 
@@ -920,7 +905,6 @@ router.get("/connected-accounts/:accountId/subscriptions", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Connected account subscriptions retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve subscriptions for connected account',
       message: error.message 
@@ -1000,7 +984,6 @@ router.get("/connected-accounts/:accountId/overview", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Connected account overview retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve overview for connected account',
       message: error.message 
@@ -1080,7 +1063,6 @@ router.post("/products", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Product creation error:', error);
     res.status(500).json({ 
       error: 'Failed to create product',
       message: error.message 
@@ -1164,7 +1146,6 @@ router.post("/connected-accounts/:accountId/products", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Connected account product creation error:', error);
     res.status(500).json({ 
       error: 'Failed to create product for connected account',
       message: error.message 
@@ -1231,7 +1212,6 @@ router.post("/products/:productId/prices", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Price creation error:', error);
     res.status(500).json({ 
       error: 'Failed to create price',
       message: error.message 
@@ -1301,7 +1281,6 @@ router.post("/connected-accounts/:accountId/products/:productId/prices", async (
     });
 
   } catch (error) {
-    console.error('Connected account price creation error:', error);
     res.status(500).json({ 
       error: 'Failed to create price for connected account',
       message: error.message 
@@ -1344,7 +1323,6 @@ router.put("/products/:productId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Product update error:', error);
     res.status(500).json({ 
       error: 'Failed to update product',
       message: error.message 
@@ -1390,7 +1368,6 @@ router.put("/connected-accounts/:accountId/products/:productId", async (req, res
     });
 
   } catch (error) {
-    console.error('Connected account product update error:', error);
     res.status(500).json({ 
       error: 'Failed to update product for connected account',
       message: error.message 
@@ -1412,7 +1389,6 @@ router.delete("/products/:productId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Product deletion error:', error);
     res.status(500).json({ 
       error: 'Failed to delete product',
       message: error.message 
@@ -1437,7 +1413,6 @@ router.delete("/connected-accounts/:accountId/products/:productId", async (req, 
     });
 
   } catch (error) {
-    console.error('Connected account product deletion error:', error);
     res.status(500).json({ 
       error: 'Failed to delete product for connected account',
       message: error.message 

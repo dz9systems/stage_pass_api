@@ -11,7 +11,6 @@ try {
     apiVersion: "2024-06-20",
   });
 } catch (error) {
-  console.error("Failed to initialize Stripe:", error.message);
   // Create a mock Stripe instance for development
   stripe = {
     webhooks: {
@@ -43,7 +42,6 @@ async function resolveUserIdFromCustomer(stripeCustomerId, stripeAccount = null)
 
     return null;
   } catch (error) {
-    console.error(`❌ Failed to resolve userId from customer ${stripeCustomerId}:`, error.message);
     return null;
   }
 }
@@ -70,10 +68,6 @@ function calculateTokenExpiration() {
  */
 async function createOrderFromPaymentIntent(pi, getStripeOptions) {
   try {
-    console.log("📦 [Webhook] Creating order from PaymentIntent metadata:", {
-      paymentIntentId: pi.id,
-      metadata: pi.metadata
-    });
 
     // Extract order data from PaymentIntent metadata
     const metadata = pi.metadata || {};
@@ -151,13 +145,6 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
 
     // Create the order
     const createdOrder = await OrdersController.upsertOrder(order);
-    console.log("✅ [Webhook] Created order from PaymentIntent:", orderId);
-    console.log("📋 [Webhook] Order includes venue:", {
-      venueName: order.venueName,
-      venueAddress: order.venueAddress,
-      performanceDate: order.performanceDate,
-      performanceTime: order.performanceTime
-    });
 
     // Parse tickets from metadata if provided (tickets should be JSON string in metadata)
     let tickets = [];
@@ -169,18 +156,15 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
           : metadata.tickets;
         
         if (!Array.isArray(tickets)) {
-          console.warn("⚠️ [Webhook] Tickets metadata is not an array, skipping ticket creation");
           tickets = [];
         }
       } catch (parseError) {
-        console.error("❌ [Webhook] Failed to parse tickets from metadata:", parseError.message);
         tickets = [];
       }
     }
 
     // Create tickets subcollection if tickets data is provided
     if (tickets && tickets.length > 0) {
-      console.log(`📝 [Webhook] Creating ${tickets.length} tickets for order ${orderId}`);
       
       const orderUrl = `${baseUrl}/orders/${orderId}?token=${encodeURIComponent(viewToken)}`;
       const ticketIds = [];
@@ -202,19 +186,15 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
 
           await TicketsController.upsertTicket(orderId, ticket);
           ticketIds.push(ticketId);
-          console.log(`✅ [Webhook] Created ticket ${ticketId} for order ${orderId}`);
         } catch (ticketError) {
-          console.error(`❌ [Webhook] Failed to create ticket:`, ticketError.message);
         }
       }
 
       // Update order with ticket IDs
       if (ticketIds.length > 0) {
         await OrdersController.updateOrder(orderId, { tickets: ticketIds });
-        console.log(`✅ [Webhook] Updated order with ${ticketIds.length} ticket IDs`);
       }
     } else {
-      console.warn("⚠️ [Webhook] No tickets data in metadata - order created without tickets");
     }
 
     // Update PaymentIntent metadata with the new orderId
@@ -225,15 +205,12 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
           orderId: orderId
         }
       }, getStripeOptions());
-      console.log("✅ [Webhook] Updated PaymentIntent metadata with orderId:", orderId);
     } catch (updateError) {
-      console.error("⚠️ [Webhook] Failed to update PaymentIntent metadata:", updateError.message);
       // Continue anyway - order is created
     }
 
     return createdOrder;
   } catch (error) {
-    console.error("❌ [Webhook] Failed to create order from PaymentIntent:", error.message);
     throw error;
   }
 }
@@ -244,16 +221,6 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
 async function processWebhookEvent(event) {
   const connectedAccount = event.account || "platform";
   const stripeAccount = event.account || null;
-  
-  console.log("\n" + "=".repeat(80));
-  console.log("📨 PROCESSING STRIPE EVENT:", {
-    type: event.type,
-    connectedAccount,
-    eventId: event.id,
-    objectId: event.data?.object?.id || 'N/A',
-    timestamp: new Date().toISOString()
-  });
-  console.log("=".repeat(80) + "\n");
 
   // Helper to get Stripe API options with account context
   const getStripeOptions = () => stripeAccount ? { stripeAccount } : {};
@@ -262,34 +229,23 @@ async function processWebhookEvent(event) {
     switch (event.type) {
       case "payment_intent.succeeded": {
         let pi = event.data.object;
-        console.log("✅ Payment succeeded", connectedAccount, pi.id, pi.metadata);
         
         // Check if orderId is missing or empty (not just falsy)
         let orderId = pi.metadata?.orderId;
         if (!orderId || orderId.trim() === '') {
-          console.warn("⚠️ [Webhook] PaymentIntent has no metadata.orderId or it's empty — attempting to create order from metadata.", {
-            paymentIntentId: pi.id,
-            hasMetadata: !!pi.metadata,
-            metadata: pi.metadata
-          });
-          
+
           try {
             // Create order from PaymentIntent metadata
             const createdOrder = await createOrderFromPaymentIntent(pi, getStripeOptions);
             orderId = createdOrder.id;
-            console.log("✅ [Webhook] Successfully created order from PaymentIntent:", orderId);
             
             // Re-fetch PaymentIntent to get updated metadata
             try {
               pi = await stripe.paymentIntents.retrieve(pi.id, getStripeOptions());
             } catch (err) {
-              console.warn("⚠️ [Webhook] Could not re-fetch PaymentIntent, using created order:", err.message);
             }
           } catch (createError) {
-            console.error("❌ [Webhook] Failed to create order from PaymentIntent — cannot send emails.", {
-              paymentIntentId: pi.id,
-              error: createError.message
-            });
+
             break;
           }
         }
@@ -297,13 +253,10 @@ async function processWebhookEvent(event) {
         // Update order payment status and lifecycle status
         if (orderId) {
           try {
-            console.log("🧾 Updating order statuses to paid/confirmed", orderId);
             await OrdersController.updatePaymentStatus(orderId, 'paid');
             await OrdersController.updateOrderStatus(orderId, 'confirmed');
-            console.log(`✅ Order ${orderId} marked as paid`);
 
             // Fetch order, user, and tickets to send emails
-            console.log("🔎 Fetching order to prepare emails:", orderId);
             const order = await OrdersController.getOrderById(orderId);
             if (!order) break;
 
@@ -320,20 +273,15 @@ async function processWebhookEvent(event) {
             if (toEmail) {
               // Send receipt
               try {
-                console.log("📧 Sending receipt email to:", toEmail);
                 await sendReceiptEmail({ to: toEmail, order, subject: `Your receipt for order ${orderId}` });
-                console.log(`📧 Receipt email sent to ${toEmail} for ${orderId}`);
               } catch (err) {
-                console.error(`❌ Failed to send receipt for ${orderId}:`, err.message);
               }
 
               // Send a single consolidated tickets email
               try {
-                console.log("🎟️ Fetching tickets for email:", orderId);
                 const tickets = await TicketsController.getAllTickets(orderId);
                 if (tickets?.length) {
                   const showName = order.performance?.productionName || order.performance?.title || order.productionName || 'your order';
-                  console.log(`🎟️ Sending consolidated tickets email with ${tickets.length} tickets to:`, toEmail);
                   await sendTicketsEmail({
                     to: toEmail,
                     subject: `Your tickets for ${showName}`,
@@ -342,48 +290,38 @@ async function processWebhookEvent(event) {
                     performance: order.performance || null,
                     venue: order.venue || null,
                   });
-                  console.log(`🎟️ Sent consolidated tickets email (${tickets.length} tickets) to ${toEmail} for ${orderId}`);
                 }
               } catch (err) {
-                console.error(`❌ Failed to send consolidated tickets email for ${orderId}:`, err.message);
               }
             } else {
-              console.warn(`⚠️ No recipient email found for order ${orderId}`);
             }
           } catch (error) {
-            console.error(`❌ Failed to update order ${pi.metadata.orderId}:`, error.message);
           }
         }
         break;
       }
       case "payment_intent.payment_failed": {
         const pi = event.data.object;
-        console.log("❌ Payment failed", connectedAccount, pi.id, pi.metadata);
 
         // Update order payment status and lifecycle status
         if (pi.metadata.orderId) {
           try {
             await OrdersController.updatePaymentStatus(pi.metadata.orderId, 'failed');
             await OrdersController.updateOrderStatus(pi.metadata.orderId, 'cancelled');
-            console.log(`❌ Order ${pi.metadata.orderId} marked as failed`);
           } catch (error) {
-            console.error(`❌ Failed to update order ${pi.metadata.orderId}:`, error.message);
           }
         }
         break;
       }
       case "charge.dispute.created": {
-        console.log("⚠️ Dispute created", connectedAccount);
         // TODO: notify theater to upload evidence
         break;
       }
       case "account.updated": {
-        console.log("ℹ️ Account updated", connectedAccount);
         break;
       }
       case "customer.subscription.created": {
         const subscription = event.data.object;
-        console.log("✅ Subscription created", connectedAccount, subscription.id);
 
         // Resolve userId - prefer customer lookup (metadata is set at creation but customer is more reliable)
         const stripeCustomerId = typeof subscription.customer === 'string' 
@@ -395,7 +333,6 @@ async function processWebhookEvent(event) {
         // Fallback: if customer lookup fails, try subscription metadata
         if (!userId && subscription.metadata && subscription.metadata.userId) {
           userId = subscription.metadata.userId;
-          console.log(`⚠️ Resolved userId from subscription metadata (customer lookup failed for ${stripeCustomerId})`);
         }
 
         if (userId) {
@@ -415,18 +352,14 @@ async function processWebhookEvent(event) {
             };
 
             await SubscriptionsController.upsertUserSubscription(userId, localSubscription);
-            console.log(`✅ Local subscription updated for user ${userId}`);
           } catch (error) {
-            console.error(`❌ Failed to update local subscription for user ${userId}:`, error.message);
           }
         } else {
-          console.warn(`⚠️ Could not resolve userId for subscription ${subscription.id}`);
         }
         break;
       }
       case "customer.subscription.updated": {
         const subscription = event.data.object;
-        console.log("🔄 Subscription updated", connectedAccount, subscription.id);
 
         // Resolve userId - prefer customer lookup (metadata is set at creation but customer is more reliable)
         const stripeCustomerId = typeof subscription.customer === 'string' 
@@ -438,7 +371,6 @@ async function processWebhookEvent(event) {
         // Fallback: if customer lookup fails, try subscription metadata
         if (!userId && subscription.metadata && subscription.metadata.userId) {
           userId = subscription.metadata.userId;
-          console.log(`⚠️ Resolved userId from subscription metadata (customer lookup failed for ${stripeCustomerId})`);
         }
 
         if (userId) {
@@ -452,19 +384,15 @@ async function processWebhookEvent(event) {
                 currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
                 cancelAtPeriodEnd: subscription.cancel_at_period_end
               });
-              console.log(`✅ Local subscription updated for user ${userId}`);
             }
           } catch (error) {
-            console.error(`❌ Failed to update local subscription for user ${userId}:`, error.message);
           }
         } else {
-          console.warn(`⚠️ Could not resolve userId for subscription ${subscription.id}`);
         }
         break;
       }
       case "customer.subscription.deleted": {
         const subscription = event.data.object;
-        console.log("❌ Subscription deleted", connectedAccount, subscription.id);
 
         // Resolve userId - prefer customer lookup (metadata is set at creation but customer is more reliable)
         const stripeCustomerId = typeof subscription.customer === 'string' 
@@ -476,7 +404,6 @@ async function processWebhookEvent(event) {
         // Fallback: if customer lookup fails, try subscription metadata
         if (!userId && subscription.metadata && subscription.metadata.userId) {
           userId = subscription.metadata.userId;
-          console.log(`⚠️ Resolved userId from subscription metadata (customer lookup failed for ${stripeCustomerId})`);
         }
 
         if (userId) {
@@ -488,19 +415,15 @@ async function processWebhookEvent(event) {
                 status: 'canceled',
                 canceledAt: new Date().toISOString()
               });
-              console.log(`✅ Local subscription canceled for user ${userId}`);
             }
           } catch (error) {
-            console.error(`❌ Failed to update local subscription for user ${userId}:`, error.message);
           }
         } else {
-          console.warn(`⚠️ Could not resolve userId for subscription ${subscription.id}`);
         }
         break;
       }
       case "invoice.payment_succeeded": {
         const invoice = event.data.object;
-        console.log("✅ Invoice payment succeeded", connectedAccount, invoice.id);
 
         // Handle subscription invoice payments
         if (invoice.subscription) {
@@ -522,10 +445,8 @@ async function processWebhookEvent(event) {
               
               if (subscription.metadata && subscription.metadata.userId) {
                 userId = subscription.metadata.userId;
-                console.log(`⚠️ Resolved userId from subscription metadata (customer lookup failed for ${stripeCustomerId})`);
               }
             } catch (err) {
-              console.error(`❌ Failed to retrieve subscription for invoice ${invoice.id}:`, err.message);
             }
           }
 
@@ -538,20 +459,16 @@ async function processWebhookEvent(event) {
                   status: 'active',
                   lastPaymentDate: new Date().toISOString()
                 });
-                console.log(`✅ Subscription payment processed for user ${userId}`);
               }
             } catch (error) {
-              console.error(`❌ Failed to update subscription payment for user ${userId}:`, error.message);
             }
           } else {
-            console.warn(`⚠️ Could not resolve userId for invoice ${invoice.id} (customer: ${stripeCustomerId})`);
           }
         }
         break;
       }
       case "invoice.payment_failed": {
         const invoice = event.data.object;
-        console.log("❌ Invoice payment failed", connectedAccount, invoice.id);
 
         // Handle subscription invoice payment failures
         if (invoice.subscription) {
@@ -573,10 +490,8 @@ async function processWebhookEvent(event) {
               
               if (subscription.metadata && subscription.metadata.userId) {
                 userId = subscription.metadata.userId;
-                console.log(`⚠️ Resolved userId from subscription metadata (customer lookup failed for ${stripeCustomerId})`);
               }
             } catch (err) {
-              console.error(`❌ Failed to retrieve subscription for invoice ${invoice.id}:`, err.message);
             }
           }
 
@@ -589,33 +504,19 @@ async function processWebhookEvent(event) {
                   status: 'past_due',
                   lastPaymentFailedDate: new Date().toISOString()
                 });
-                console.log(`❌ Subscription payment failed for user ${userId}`);
               }
             } catch (error) {
-              console.error(`❌ Failed to update subscription payment failure for user ${userId}:`, error.message);
             }
           } else {
-            console.warn(`⚠️ Could not resolve userId for invoice ${invoice.id} (customer: ${stripeCustomerId})`);
           }
         }
         break;
       }
       default:
-        console.log(`ℹ️  Unhandled webhook event type: ${event.type}`, { eventId: event.id, connectedAccount });
         break;
     }
 
-    console.log("\n" + "=".repeat(80));
-    console.log("✅ WEBHOOK EVENT PROCESSING COMPLETE");
-    console.log("=".repeat(80) + "\n");
   } catch (error) {
-    console.error("\n" + "❌".repeat(40));
-    console.error("❌❌❌ ERROR PROCESSING WEBHOOK EVENT ❌❌❌");
-    console.error("Event type:", event.type);
-    console.error("Event ID:", event.id);
-    console.error("Error:", error);
-    console.error("Stack:", error.stack);
-    console.error("❌".repeat(40) + "\n");
   }
 }
 
@@ -625,14 +526,7 @@ router.post(
   express.raw({ type: "application/json" }),
   async (req, res) => {
     try {
-      console.log("➡️  Incoming Stripe webhook:", {
-        path: req.originalUrl,
-        method: req.method,
-        contentType: req.headers["content-type"],
-        contentLength: req.headers["content-length"],
-        stripeSignaturePresent: !!req.headers["stripe-signature"],
-      });
-      
+
       const sig = req.headers["stripe-signature"];
       let event;
 
@@ -643,18 +537,14 @@ router.post(
           sig,
           process.env.STRIPE_WEBHOOK_SECRET
         );
-        console.log("✅ Webhook signature verified successfully");
       } catch (err) {
-        console.error("❌ Webhook signature verification failed:", err.message);
         
         // Only allow unverified events in non-production environments
         if (process.env.NODE_ENV === 'production') {
-          console.error("🚫 Rejecting unverified webhook in production");
           return res.status(400).send(`Webhook Error: ${err.message}`);
         }
 
         // Fallback for testing/development only
-        console.warn("⚠️  WARNING: Processing webhook WITHOUT signature verification (NODE_ENV !== 'production')");
         try {
           event = JSON.parse(req.body.toString());
         } catch (parseErr) {
@@ -665,21 +555,16 @@ router.post(
       // CRITICAL: Send 200 response IMMEDIATELY after signature verification
       // This prevents Stripe from retrying if processing takes too long
       res.sendStatus(200);
-      console.log("✅ ACK (200) sent to Stripe - processing event asynchronously");
 
       // Process the event asynchronously (after response is sent)
       // Use setImmediate to ensure response is fully sent before processing
       setImmediate(() => {
         processWebhookEvent(event).catch(error => {
-          console.error("❌ Unhandled error in async webhook processing:", error);
         });
       });
 
     } catch (handlerError) {
       // Catch any unhandled errors in the webhook handler
-      console.error("❌❌❌ UNHANDLED WEBHOOK ERROR ❌❌❌");
-      console.error("Error:", handlerError);
-      console.error("Stack:", handlerError.stack);
       
       // Always return 200 to Stripe so it doesn't retry
       // (Only if we haven't already sent a response)

@@ -9,7 +9,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 // Create PaymentIntent on the connected account (Direct charge)
 router.post("/create-intent", async (req, res) => {
   try {
-    console.log("🔍 Payment intent request body:", req.body);
     const { 
       sellerId,  // Frontend sends sellerId (not theaterId)
       theaterId, // Keep for backward compatibility
@@ -53,7 +52,6 @@ router.post("/create-intent", async (req, res) => {
     // Frontend can send this to use localhost in dev, production URL in prod
     if (baseUrl) {
       metadata.baseUrl = baseUrl;
-      console.log("🌐 QR code base URL from frontend:", baseUrl);
     }
 
     // Add production and performance IDs if provided
@@ -99,50 +97,35 @@ router.post("/create-intent", async (req, res) => {
     if (tickets && !metadata.tickets) {
       // Stringify tickets array for Stripe metadata (Stripe metadata values must be strings)
       metadata.tickets = JSON.stringify(tickets);
-      console.log(`🎫 [Payment] Added ${tickets.length} tickets to metadata`);
     }
 
-    console.log("📦 PaymentIntent metadata:", metadata);
 
     if (!metadata.orderId) {
-      console.warn(
-        "⚠️ No orderId provided in request. Webhook can't update order status or send emails without metadata.orderId."
-      );
+
     } else {
-      console.log("🔗 Linking PaymentIntent to orderId:", metadata.orderId);
     }
 
     // Validate sellerId (frontend sends sellerId, not theaterId)
     const sellerIdToUse = sellerId || theaterId;
     if (!sellerIdToUse) {
-      console.log("❌ Missing sellerId or theaterId");
       return res.status(400).json({ error: "Missing sellerId or theaterId" });
     }
     if (amountCents == null) {
-      console.log("❌ Missing amountCents");
       return res.status(400).json({ error: "Missing amountCents" });
     }
 
-    console.log("🔍 Looking up venue:", sellerIdToUse);
     const venues = await VenuesController.getVenuesBySellerId(sellerIdToUse);
-    console.log("🔍 Venues found:", venues ? venues.length : 0);
 
     if (!venues || venues.length === 0) {
-      console.log("❌ No venues found for seller");
       return res.status(404).json({ error: "No venues found for seller" });
     }
 
     // Use the first venue (or you might want to handle multiple venues differently)
     const venue = venues[0];
 
-    console.log("🔍 Looking up seller:", venue.sellerId);
     const seller = await UsersController.getUserById(venue.sellerId);
-    console.log("🔍 Seller found:", seller ? "Yes" : "No");
-    console.log("🔍 Seller data:", seller);
-    console.log("🔍 Seller stripeAccountId:", seller?.stripeAccountId);
 
     if (!seller?.stripeAccountId) {
-      console.log("❌ Seller not found or no Stripe account");
       return res.status(404).json({ error: "Seller not found or not connected to Stripe" });
     }
 
@@ -159,20 +142,7 @@ router.post("/create-intent", async (req, res) => {
       },
     });
 
-    console.log(
-      "✅ PaymentIntent created successfully",
-      {
-        id: pi.id,
-        amount: pi.amount,
-        currency: pi.currency,
-        status: pi.status,
-        transfer_destination: pi.transfer_data && pi.transfer_data.destination,
-        metadata: pi.metadata
-      }
-    );
-    console.log(
-      `⚠️ PaymentIntent status: ${pi.status}. Webhook will only fire when status becomes 'succeeded' after payment confirmation.`
-    );
+
     res.json({
       clientSecret: pi.client_secret,
       paymentIntentId: pi.id,
@@ -180,16 +150,7 @@ router.post("/create-intent", async (req, res) => {
       warning: !metadata.orderId ? "No orderId in metadata; webhook will not update order or send receipt" : undefined
     });
   } catch (e) {
-    console.error("❌ PaymentIntent creation failed:", {
-      message: e.message,
-      type: e.type,
-      code: e.code,
-      decline_code: e.decline_code,
-      param: e.param,
-      statusCode: e.statusCode,
-      raw: e.raw,
-      requestId: e.requestId
-    });
+
     res.status(500).json({
       error: e.message,
       type: e.type,
@@ -202,11 +163,9 @@ router.post("/create-intent", async (req, res) => {
 // Cancel PaymentIntent
 router.post("/cancel-payment-intent", async (req, res) => {
   try {
-    console.log("🔍 Cancel PaymentIntent request:", req.body);
     const { paymentIntentId, stripeAccountId } = req.body;
 
     if (!paymentIntentId) {
-      console.log("❌ Missing paymentIntentId");
       return res.status(400).json({ error: "Missing paymentIntentId" });
     }
 
@@ -215,7 +174,6 @@ router.post("/cancel-payment-intent", async (req, res) => {
 
     try {
       const canceledPi = await stripe.paymentIntents.cancel(paymentIntentId, cancelOptions);
-      console.log("✅ PaymentIntent canceled successfully:", canceledPi.id);
       res.json({
         success: true,
         paymentIntentId: canceledPi.id,
@@ -227,7 +185,6 @@ router.post("/cancel-payment-intent", async (req, res) => {
           cancelError.message?.includes('No such payment_intent') ||
           cancelError.message?.includes('already canceled') ||
           cancelError.message?.includes('already succeeded')) {
-        console.log("ℹ️ PaymentIntent already canceled/completed or doesn't exist:", paymentIntentId);
         res.json({
           success: true,
           paymentIntentId: paymentIntentId,
@@ -239,7 +196,6 @@ router.post("/cancel-payment-intent", async (req, res) => {
       }
     }
   } catch (e) {
-    console.error("❌ PaymentIntent cancellation failed:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -247,26 +203,21 @@ router.post("/cancel-payment-intent", async (req, res) => {
 // Confirm PaymentIntent (for connected accounts)
 router.post("/confirm-payment-intent", async (req, res) => {
   try {
-    console.log("🔍 Confirm PaymentIntent request:", req.body);
     const { paymentIntentId, stripeAccountId, cardToken } = req.body;
 
     if (!paymentIntentId) {
-      console.log("❌ Missing paymentIntentId");
       return res.status(400).json({ error: "Missing paymentIntentId" });
     }
 
     if (!stripeAccountId) {
-      console.log("❌ Missing stripeAccountId");
       return res.status(400).json({ error: "Missing stripeAccountId" });
     }
 
     if (!cardToken) {
-      console.log("❌ Missing cardToken");
       return res.status(400).json({ error: "Missing cardToken" });
     }
 
     // Create PaymentMethod on the connected account
-    console.log("🔍 Creating PaymentMethod on connected account...");
     const paymentMethod = await stripe.paymentMethods.create(
       {
         type: 'card',
@@ -275,7 +226,6 @@ router.post("/confirm-payment-intent", async (req, res) => {
       { stripeAccount: stripeAccountId }
     );
 
-    console.log("✅ PaymentMethod created on connected account:", paymentMethod.id);
 
     // Confirm the PaymentIntent on the correct account
     const confirmedPi = await stripe.paymentIntents.confirm(
@@ -286,7 +236,6 @@ router.post("/confirm-payment-intent", async (req, res) => {
       { stripeAccount: stripeAccountId }
     );
 
-    console.log("✅ PaymentIntent confirmed successfully:", confirmedPi.id);
     res.json({
       success: true,
       paymentIntentId: confirmedPi.id,
@@ -294,7 +243,6 @@ router.post("/confirm-payment-intent", async (req, res) => {
       clientSecret: confirmedPi.client_secret
     });
   } catch (e) {
-    console.error("❌ PaymentIntent confirmation failed:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -302,7 +250,6 @@ router.post("/confirm-payment-intent", async (req, res) => {
 // Create Stripe subscription
 router.post("/create-subscription", async (req, res) => {
   try {
-    console.log("🔍 Create subscription request:", req.body);
     const { userId, planId, paymentMethodId, customerId } = req.body;
 
     // Validation
@@ -370,8 +317,6 @@ router.post("/create-subscription", async (req, res) => {
       },
     });
 
-    console.log('plan.stripePriceId (original):', plan.stripePriceId);
-    console.log('stripePriceId (cleaned):', stripePriceId);
 
     // Create subscription
     const subscription = await stripe.subscriptions.create({
@@ -387,7 +332,6 @@ router.post("/create-subscription", async (req, res) => {
       }
     });
 
-    console.log("✅ Stripe subscription created:", subscription.id);
     res.json({
       subscriptionId: subscription.id,
       clientSecret: subscription.latest_invoice.payment_intent.client_secret,
@@ -396,7 +340,6 @@ router.post("/create-subscription", async (req, res) => {
     });
 
   } catch (e) {
-    console.error("❌ Stripe subscription creation failed:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -404,7 +347,6 @@ router.post("/create-subscription", async (req, res) => {
 // Complete Stripe subscription (after payment confirmation)
 router.post("/complete-subscription", async (req, res) => {
   try {
-    console.log("🔍 Complete subscription request:", req.body);
     const { subscriptionId, userId } = req.body;
 
     if (!subscriptionId || !userId) {
@@ -447,7 +389,6 @@ router.post("/complete-subscription", async (req, res) => {
 
     const result = await SubscriptionsController.upsertUserSubscription(userId, localSubscription);
 
-    console.log("✅ Local subscription created/updated:", result.id);
     res.json({
       success: true,
       subscription: result,
@@ -460,7 +401,6 @@ router.post("/complete-subscription", async (req, res) => {
     });
 
   } catch (e) {
-    console.error("❌ Subscription completion failed:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -468,7 +408,6 @@ router.post("/complete-subscription", async (req, res) => {
 // Cancel Stripe subscription
 router.post("/cancel-subscription", async (req, res) => {
   try {
-    console.log("🔍 Cancel subscription request:", req.body);
     const { subscriptionId, userId, cancelAtPeriodEnd = true } = req.body;
 
     if (!subscriptionId || !userId) {
@@ -492,7 +431,6 @@ router.post("/cancel-subscription", async (req, res) => {
       });
     }
 
-    console.log("✅ Subscription cancellation processed:", subscriptionId);
     res.json({
       success: true,
       subscriptionId: subscription.id,
@@ -502,7 +440,6 @@ router.post("/cancel-subscription", async (req, res) => {
     });
 
   } catch (e) {
-    console.error("❌ Subscription cancellation failed:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -532,7 +469,6 @@ router.get("/subscription/:subscriptionId", async (req, res) => {
     });
 
   } catch (e) {
-    console.error("❌ Failed to get subscription:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -543,14 +479,6 @@ router.get("/payment-intent/:paymentIntentId", async (req, res) => {
     const { paymentIntentId } = req.params;
 
     const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-    console.log(`🔍 PaymentIntent status check:`, {
-      id: pi.id,
-      status: pi.status,
-      amount: pi.amount,
-      metadata: pi.metadata,
-      created: new Date(pi.created * 1000).toISOString()
-    });
 
     res.json({
       id: pi.id,
@@ -563,7 +491,6 @@ router.get("/payment-intent/:paymentIntentId", async (req, res) => {
       charges: pi.charges?.data || []
     });
   } catch (e) {
-    console.error("❌ Failed to get PaymentIntent:", e);
     res.status(500).json({ error: e.message });
   }
 });

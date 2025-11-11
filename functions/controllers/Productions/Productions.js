@@ -64,7 +64,6 @@ class ProductionsController {
 
       const snapshot = await query.get();
       const productions = docsToObjects(snapshot.docs);
-      console.log('Productions retrieved for sellerId', sellerId, ':', productions);
 
       if (pagination.limit || pagination.offset) {
         return applyPagination(productions, pagination.limit, pagination.offset);

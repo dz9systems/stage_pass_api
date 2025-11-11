@@ -151,9 +151,7 @@ router.post("/", async (req, res) => {
 
             await TicketsController.upsertTicket(orderId, ticket);
             ticketIds.push(ticketId);
-            console.log(`✅ Created ticket ${ticketId} for order ${orderId}`);
           } catch (ticketError) {
-            console.error(`❌ Failed to create ticket:`, ticketError.message);
           }
         }
         
@@ -176,7 +174,6 @@ router.post("/", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Order creation error:', error);
     res.status(500).json({ 
       error: 'Failed to create order',
       message: error.message 
@@ -203,7 +200,6 @@ router.get("/", async (req, res) => {
     // Use specialized methods when userId or sellerId is provided for better query performance
     if (userId) {
       // Debug logging
-      console.log(`[Orders] Querying orders for userId: ${userId}`);
       
       // Use getOrdersByUserId which is optimized for userId queries
       const filters = { status, paymentStatus, productionId, performanceId };
@@ -217,9 +213,7 @@ router.get("/", async (req, res) => {
       orders = await OrdersController.getOrdersByUserId(userId, filters);
       
       // Debug logging
-      console.log(`[Orders] Found ${orders.length} orders for userId: ${userId}`);
       if (orders.length === 0) {
-        console.log(`[Orders] No orders found. Check if userId is correct and orders exist in database.`);
       }
     } else if (sellerId) {
       // Use getOrdersBySellerId which is optimized for sellerId queries
@@ -270,7 +264,6 @@ router.get("/", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Orders retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve orders',
       message: error.message 
@@ -325,7 +318,6 @@ router.get("/:orderId", optionalAuth, async (req, res) => {
       try {
         tickets = await TicketsController.getAllTickets(orderId);
       } catch (err) {
-        console.warn(`⚠️ Could not fetch tickets for order ${orderId}:`, err.message);
       }
 
       // Return limited order details for token-based access (includes tickets for QR code display)
@@ -365,7 +357,6 @@ router.get("/:orderId", optionalAuth, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Order retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve order',
       message: error.message 
@@ -414,7 +405,6 @@ router.get("/:orderId/public", async (req, res) => {
     try {
       tickets = await TicketsController.getAllTickets(orderId);
     } catch (err) {
-      console.warn(`⚠️ Could not fetch tickets for order ${orderId}:`, err.message);
     }
 
     // Return limited public order details (includes tickets for QR code display)
@@ -447,7 +437,6 @@ router.get("/:orderId/public", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Public order retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve order',
       message: error.message 
@@ -485,7 +474,6 @@ router.get("/user/:userId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('User orders retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve user orders',
       message: error.message 
@@ -523,7 +511,6 @@ router.get("/seller/:sellerId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Seller orders retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve seller orders',
       message: error.message 
@@ -590,7 +577,6 @@ router.put("/:orderId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Order update error:', error);
     res.status(500).json({ 
       error: 'Failed to update order',
       message: error.message 
@@ -650,7 +636,6 @@ router.patch("/:orderId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Order patch error:', error);
     res.status(500).json({ 
       error: 'Failed to update order',
       message: error.message 
@@ -679,7 +664,6 @@ router.delete("/:orderId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Order deletion error:', error);
     res.status(500).json({ 
       error: 'Failed to delete order',
       message: error.message 

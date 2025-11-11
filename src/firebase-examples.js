@@ -21,7 +21,6 @@ export async function getAllProductions() {
     const snapshot = await getDocs(productionsRef);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error('Error getting productions:', error);
     throw error;
   }
 }
@@ -34,7 +33,6 @@ export async function getProductionsBySeller(sellerId) {
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error('Error getting productions by seller:', error);
     throw error;
   }
 }
@@ -50,7 +48,6 @@ export async function createProduction(productionData) {
     });
     return { id: docRef.id, ...productionData };
   } catch (error) {
-    console.error('Error creating production:', error);
     throw error;
   }
 }
@@ -65,7 +62,6 @@ export async function updateProduction(productionId, updateData) {
     });
     return { id: productionId, ...updateData };
   } catch (error) {
-    console.error('Error updating production:', error);
     throw error;
   }
 }
@@ -92,7 +88,6 @@ export async function getPerformances(productionId) {
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error('Error getting performances:', error);
     throw error;
   }
 }
@@ -114,7 +109,6 @@ export async function getVenues(filters = {}) {
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error('Error getting venues:', error);
     throw error;
   }
 }
@@ -131,7 +125,6 @@ export async function getUserOrders(userId) {
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error('Error getting user orders:', error);
     throw error;
   }
 }

@@ -11,13 +11,12 @@ if (process.env.SENDGRID_API_KEY) {
       sgMail.setDataResidency('eu');
     }
   } catch (err) {
-    console.error('Failed to initialize SendGrid:', err.message);
   }
 } else {
-  console.warn('SENDGRID_API_KEY is not set. Emails will fail to send.');
 }
 
 const DEFAULT_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || process.env.FROM_EMAIL || 'no-reply@example.com';
+const LOGO_URL = 'https://firebasestorage.googleapis.com/v0/b/stage-pass-b1d9b.firebasestorage.app/o/STAGE%20PASS%20LOGO.png?alt=media&token=6814dd6b-eeca-47dc-95e2-55159801a3eb';
 
 function buildBasicHtmlWrapper(title, bodyHtml) {
   return `
@@ -30,23 +29,94 @@ function buildBasicHtmlWrapper(title, bodyHtml) {
   `;
 }
 
+// Build Welcome email template matching the design
+function buildWelcomeTemplate({ name = "there" }) {
+  // Format name for greeting - use first name if available, otherwise "there"
+  const displayName = name && name !== "there" ? name.split(' ')[0] : "";
+  const headingName = name && name !== "there" ? `, ${name.split(' ')[0]}` : "";
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #ffffff;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; padding: 40px 20px;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff;">
+              <!-- Logo -->
+              <tr>
+                <td align="center" style="padding-bottom: 30px;">
+                  ${LOGO_URL ? `
+                    <img src="${LOGO_URL}" alt="Stage Pass" style="max-width: 200px; height: auto; display: block; margin: 0 auto;" />
+                  ` : `
+                    <div style="background-color: #000000; color: #ffffff; width: 80px; height: 80px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; text-align: center;">
+                      STAGE<br>PASS
+                    </div>
+                  `}
+                </td>
+              </tr>
+
+              <!-- Heading -->
+              <tr>
+                <td align="center" style="padding-bottom: 20px;">
+                  <h1 style="margin: 0; font-size: 32px; font-weight: bold; color: #000000;">Thanks for signing up${headingName}!</h1>
+                </td>
+              </tr>
+
+              <!-- Content -->
+              <tr>
+                <td style="padding: 0 20px 30px 20px; font-size: 16px; line-height: 1.6; color: #333333;">
+                  <p style="margin: 0 0 16px 0;">Hi${displayName ? ` ${displayName}` : ""},</p>
+
+                  <p style="margin: 0 0 16px 0;">Welcome to <strong>StagePass Pro</strong> — we're thrilled to have you on board!</p>
+
+                  <p style="margin: 0 0 16px 0;">StagePass Pro is built to help theaters like yours simplify ticketing, manage seat maps effortlessly, and keep every production running smoothly. You now have access to powerful tools that put full control of your venue in your hands — from customizable seating charts to real-time sales analytics.</p>
+
+                  <h3 style="margin: 30px 0 15px 0; font-size: 18px; font-weight: bold; color: #000000;">Here's how to get started:</h3>
+
+                  <ol style="margin: 0 0 16px 0; padding-left: 20px; line-height: 1.8; color: #333333;">
+                    <li style="margin-bottom: 8px;">Log in to your dashboard and set up your first production.</li>
+                    <li style="margin-bottom: 8px;">Customize your seat map and pricing tiers.</li>
+                    <li style="margin-bottom: 8px;">Start selling tickets and track performance in real time.</li>
+                  </ol>
+
+                  <p style="margin: 30px 0 16px 0;">If you ever need help, our support team is always here for you — just reach out to <a href="mailto:stagepasspro@gmail.com" style="color: #0066cc; text-decoration: none;">stagepasspro@gmail.com</a>.</p>
+
+                  <p style="margin: 20px 0 16px 0; font-weight: bold; color: #000000;">Welcome to the future of theater ticketing.</p>
+
+                  <p style="margin: 30px 0 0 0;"><strong>The StagePass Pro Team</strong></p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+}
+
 async function sendGreetingEmail({ to, name, subject = 'Welcome to Stage Pass!' }) {
-  const html = buildBasicHtmlWrapper(
-    'Welcome',
-    `<p>Hi ${name || 'there'},</p>
-     <p>Welcome to Stage Pass. We're excited to have you!</p>`
-  );
+  const html = buildWelcomeTemplate({ name: name || "there" });
 
   const msg = {
     to,
     from: DEFAULT_FROM_EMAIL,
-    subject,
-    text: `Hi ${name || 'there'}, Welcome to Stage Pass!`,
+    subject: subject || "Thanks for signing up!",
+    text: `Hi ${name || "there"}, Thanks for signing up! Welcome to StagePass Pro.`,
     html
   };
 
-  await sgMail.send(msg);
-  return { success: true };
+  try {
+    await sgMail.send(msg);
+    return { success: true };
+  } catch (error) {
+    throw error;
+  }
 }
 
 async function sendReceiptEmail({ to, subject = 'Your Stage Pass Receipt', order }) {
@@ -106,7 +176,6 @@ async function uploadQrCodeToStorage(qrBuffer, orderId, ticketId) {
     const filePath = `qr-codes/orders/${sanitizeId(orderId)}/${sanitizeId(ticketId)}.png`;
     const file = bucket.file(filePath);
     
-    console.log('📤 [Email] Uploading QR code to storage:', { filePath, bucket: bucket.name });
     
     await file.save(qrBuffer, {
       metadata: {
@@ -115,29 +184,19 @@ async function uploadQrCodeToStorage(qrBuffer, orderId, ticketId) {
       },
     });
     
-    console.log('🔓 [Email] Making QR code file public...');
     
     // Try to make file publicly readable
     // Note: If uniform bucket-level access is enabled, this may fail silently
     try {
       await file.makePublic();
-      console.log('✅ [Email] File ACL set to public');
     } catch (aclError) {
-      console.log('⚠️ [Email] Could not set file ACL (uniform bucket-level access may be enabled):', aclError.message);
-      console.log('ℹ️ [Email] Relying on storage rules for public access');
     }
     
     // Use the simpler Google Cloud Storage URL format for public files
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
-    console.log('✅ [Email] QR code uploaded to storage:', { filePath, publicUrl });
     return publicUrl;
   } catch (error) {
-    console.error('❌ [Email] Failed to upload QR code to storage:', {
-      message: error.message,
-      code: error.code,
-      details: error.details || error.response || error
-    });
-    
+
     if (error.code === 403 || error.message?.includes('Permission denied')) {
       throw new Error(`Permission denied uploading QR code. Check Firebase Admin SDK credentials and bucket permissions. Original: ${error.message}`);
     }
@@ -221,7 +280,6 @@ async function sendTicketEmail({
     const qrBuffer = await generateQrPngBuffer(qrData);
     qrImageUrl = await uploadQrCodeToStorage(qrBuffer, orderId, ticketId);
   } catch (error) {
-    console.error('❌ [Email] Failed to generate/upload QR code:', error.message);
     throw error;
   }
 
@@ -309,7 +367,6 @@ module.exports = {
     
     for (const ticket of tickets) {
       const qrData = ticket?.qrCode || ticket?.id || String(idx + 1);
-      console.log(`🎫 [Email] Generating QR code for ticket ${idx + 1}:`, { ticketId: ticket?.id, qrCode: ticket?.qrCode, qrData });
       
       let qrImageUrl = null;
       try {
@@ -317,7 +374,6 @@ module.exports = {
         const ticketIdForStorage = ticket?.id || `ticket-${idx}`;
         qrImageUrl = await uploadQrCodeToStorage(qrBuffer, orderId, ticketIdForStorage);
       } catch (error) {
-        console.error(`❌ [Email] Failed to generate/upload QR code for ticket ${idx + 1}:`, error.message);
       }
       
       // Format seating: Section and Seat (combining row and seatNumber)
@@ -333,7 +389,6 @@ module.exports = {
       listItems.push(`<li><div><strong>${seatDisplay || ticket?.id || `Ticket ${idx+1}`}</strong></div>${qrImg}</li>`);
       idx += 1;
     }
-    console.log(`📎 [Email] Prepared ${listItems.length} tickets with QR codes`);
 
     const listHtml = listItems.length ? `<ol>${listItems.join('')}</ol>` : '<p>No tickets found.</p>';
     const body = `

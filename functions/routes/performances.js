@@ -36,7 +36,6 @@ router.get("/", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('All performances retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve performances',
       message: error.message 
@@ -112,7 +111,6 @@ router.post("/:productionId/performances", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Performance creation error:', error);
     res.status(500).json({ 
       error: 'Failed to create performance',
       message: error.message 
@@ -160,7 +158,6 @@ router.get("/:productionId/performances", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Performances retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve performances',
       message: error.message 
@@ -195,7 +192,6 @@ router.get("/:productionId/performances/:performanceId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Performance retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve performance',
       message: error.message 
@@ -263,7 +259,6 @@ router.put("/:productionId/performances/:performanceId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Performance update error:', error);
     res.status(500).json({ 
       error: 'Failed to update performance',
       message: error.message 
@@ -324,7 +319,6 @@ router.patch("/:productionId/performances/:performanceId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Performance patch error:', error);
     res.status(500).json({ 
       error: 'Failed to update performance',
       message: error.message 
@@ -361,7 +355,6 @@ router.delete("/:productionId/performances/:performanceId", async (req, res) => 
     });
 
   } catch (error) {
-    console.error('Performance deletion error:', error);
     res.status(500).json({ 
       error: 'Failed to delete performance',
       message: error.message 

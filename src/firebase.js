@@ -23,8 +23,6 @@ if (!admin.apps.length) {
       });
     } catch (error) {
       // Fallback: Initialize without credentials (for emulator or if credentials are not needed)
-      console.warn('Warning: Firebase Admin initialized without credentials. Signed URLs may not work.');
-      console.warn('Set FIREBASE_SERVICE_ACCOUNT_KEY or GOOGLE_APPLICATION_CREDENTIALS for full functionality.');
       admin.initializeApp({
         projectId: process.env.FIREBASE_PROJECT_ID || "stage-pass-b1d9b",
         storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "stage-pass-b1d9b.firebasestorage.app"

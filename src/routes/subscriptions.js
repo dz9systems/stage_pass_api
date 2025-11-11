@@ -5,7 +5,6 @@ const { SubscriptionsController } = require("../controllers");
 // Get all subscription plans
 router.get("/plans", async (req, res) => {
   try {
-    console.log("🔍 Fetching subscription plans");
     
     const { isActive, limit = 100, offset = 0 } = req.query;
     
@@ -23,7 +22,6 @@ router.get("/plans", async (req, res) => {
     
     res.json({ success: true, plans });
   } catch (e) {
-    console.error("❌ Failed to fetch subscription plans:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -31,7 +29,6 @@ router.get("/plans", async (req, res) => {
 // Get subscription plan by ID
 router.get("/plans/:planId", async (req, res) => {
   try {
-    console.log("🔍 Fetching subscription plan:", req.params.planId);
     
     const { planId } = req.params;
     const plan = await SubscriptionsController.getSubscriptionPlanById(planId);
@@ -42,7 +39,6 @@ router.get("/plans/:planId", async (req, res) => {
     
     res.json({ success: true, plan });
   } catch (e) {
-    console.error("❌ Failed to fetch subscription plan:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -50,7 +46,6 @@ router.get("/plans/:planId", async (req, res) => {
 // Create a new subscription plan
 router.post("/plans", async (req, res) => {
   try {
-    console.log("🔍 Creating subscription plan:", req.body);
     
     const { name, price, ticketLimit, productionLimit, features, isActive, stripeProductId, stripePriceId } = req.body;
     
@@ -109,10 +104,8 @@ router.post("/plans", async (req, res) => {
     
     const createdPlan = await SubscriptionsController.createSubscriptionPlan(newPlan);
     
-    console.log("✅ Subscription plan created:", createdPlan);
     res.status(201).json({ success: true, plan: createdPlan });
   } catch (e) {
-    console.error("❌ Failed to create subscription plan:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -120,7 +113,6 @@ router.post("/plans", async (req, res) => {
 // Update an existing subscription plan
 router.put("/plans/:planId", async (req, res) => {
   try {
-    console.log("🔍 Updating subscription plan:", req.params.planId, req.body);
     
     const { planId } = req.params;
     const { name, price, ticketLimit, productionLimit, features, isActive, stripeProductId, stripePriceId } = req.body;
@@ -187,10 +179,8 @@ router.put("/plans/:planId", async (req, res) => {
     
     const result = await SubscriptionsController.upsertSubscriptionPlan(updatedPlan);
     
-    console.log("✅ Subscription plan updated:", result);
     res.json({ success: true, plan: result });
   } catch (e) {
-    console.error("❌ Failed to update subscription plan:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -198,7 +188,6 @@ router.put("/plans/:planId", async (req, res) => {
 // Delete a subscription plan
 router.delete("/plans/:planId", async (req, res) => {
   try {
-    console.log("🔍 Deleting subscription plan:", req.params.planId);
     
     const { planId } = req.params;
     
@@ -216,10 +205,8 @@ router.delete("/plans/:planId", async (req, res) => {
     
     await SubscriptionsController.deleteSubscriptionPlan(planId);
     
-    console.log("✅ Subscription plan deleted:", planId);
     res.json({ success: true, message: "Plan deleted successfully" });
   } catch (e) {
-    console.error("❌ Failed to delete subscription plan:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -227,7 +214,6 @@ router.delete("/plans/:planId", async (req, res) => {
 // Get user's current subscription
 router.get("/user/:userId", async (req, res) => {
   try {
-    console.log("🔍 Fetching user subscription:", req.params.userId);
     
     const { userId } = req.params;
     
@@ -239,7 +225,6 @@ router.get("/user/:userId", async (req, res) => {
     
     res.json({ success: true, subscription });
   } catch (e) {
-    console.error("❌ Failed to fetch user subscription:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -247,7 +232,6 @@ router.get("/user/:userId", async (req, res) => {
 // Create or update user subscription
 router.post("/user/:userId", async (req, res) => {
   try {
-    console.log("🔍 Creating/updating user subscription:", req.params.userId, req.body);
     
     const { userId } = req.params;
     const { planId, status = 'active', currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd = false } = req.body;
@@ -276,10 +260,8 @@ router.post("/user/:userId", async (req, res) => {
     
     const result = await SubscriptionsController.createUserSubscription(subscription);
     
-    console.log("✅ User subscription created/updated:", result);
     res.status(201).json({ success: true, subscription: result });
   } catch (e) {
-    console.error("❌ Failed to create/update user subscription:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -287,7 +269,6 @@ router.post("/user/:userId", async (req, res) => {
 // Cancel user subscription
 router.delete("/user/:userId", async (req, res) => {
   try {
-    console.log("🔍 Canceling user subscription:", req.params.userId);
     
     const { userId } = req.params;
     
@@ -299,10 +280,8 @@ router.delete("/user/:userId", async (req, res) => {
     
     await SubscriptionsController.deleteUserSubscription(userId);
     
-    console.log("✅ User subscription canceled:", userId);
     res.json({ success: true, message: "Subscription canceled successfully" });
   } catch (e) {
-    console.error("❌ Failed to cancel user subscription:", e);
     res.status(500).json({ error: e.message });
   }
 });

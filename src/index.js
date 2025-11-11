@@ -44,23 +44,7 @@ app.get("/get-token", (req, res) => {
 });
 
 // --- Webhooks MUST be mounted before JSON parsing ---
-// Add logging middleware to catch all webhook requests
-app.use("/webhooks", (req, res, next) => {
-  console.log("\n🔔 WEBHOOK REQUEST DETECTED:", {
-    method: req.method,
-    path: req.path,
-    url: req.url,
-    originalUrl: req.originalUrl,
-    headers: {
-      'content-type': req.headers['content-type'],
-      'content-length': req.headers['content-length'],
-      'stripe-signature': req.headers['stripe-signature'] ? 'PRESENT' : 'MISSING',
-      'user-agent': req.headers['user-agent']
-    },
-    timestamp: new Date().toISOString()
-  });
-  next();
-}, bodyParser.raw({ type: "application/json" }), webhooksRouter);
+app.use("/webhooks", bodyParser.raw({ type: "application/json" }), webhooksRouter);
 
 // JSON for everything else
 app.use(bodyParser.json());
@@ -86,7 +70,5 @@ app.use("/api/emails", emailsRouter);
 
 // Start server - listen on all interfaces (IPv4 and IPv6)
 // This ensures both localhost (IPv6 ::1) and 127.0.0.1 (IPv4) work
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server listening on ${port} (all interfaces)`);
-});
+app.listen(port, '0.0.0.0');
 

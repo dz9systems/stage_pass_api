@@ -37,3 +37,4 @@ If you prefer to host the logo in Firebase Storage:
 3. Use the Firebase Storage URL in your `.env` file
 
 
+

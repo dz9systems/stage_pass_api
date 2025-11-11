@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { UsersController } = require("../controllers");
+const { sendGreetingEmail } = require("../services/email");
 
 // Generate unique ID
 function generateId() {
@@ -56,13 +57,22 @@ router.post("/", async (req, res) => {
 
     const createdUser = await UsersController.upsertUser(user);
 
+    // Send welcome email asynchronously (don't block user creation if email fails)
+    sendGreetingEmail({
+      to: email,
+      name: displayName,
+      subject: "Welcome to Stage Pass Pro!"
+    }).catch((emailError) => {
+      // Log email error but don't fail user creation
+      
+    });
+
     res.status(201).json({
       success: true,
       user: createdUser
     });
 
   } catch (error) {
-    console.error('User creation error:', error);
     res.status(500).json({ 
       error: 'Failed to create user',
       message: error.message 
@@ -99,7 +109,6 @@ router.get("/", async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Users retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve users',
       message: error.message 
@@ -126,7 +135,6 @@ router.get("/:userId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('User retrieval error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve user',
       message: error.message 
@@ -188,7 +196,6 @@ router.put("/:userId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('User update error:', error);
     res.status(500).json({ 
       error: 'Failed to update user',
       message: error.message 
@@ -236,7 +243,6 @@ router.patch("/:userId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('User patch error:', error);
     res.status(500).json({ 
       error: 'Failed to update user',
       message: error.message 
@@ -265,7 +271,6 @@ router.delete("/:userId", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('User deletion error:', error);
     res.status(500).json({ 
       error: 'Failed to delete user',
       message: error.message 

@@ -66,7 +66,6 @@ class OrdersController {
       } catch (indexError) {
         // If index is not ready yet, fetch without orderBy and sort in memory
         if (indexError.message && indexError.message.includes('index')) {
-          console.warn(`⚠️ Firestore index not ready yet for orders query, fetching without orderBy and sorting in memory`);
           const snapshot = await query.get();
           orders = docsToObjects(snapshot.docs);
           // Sort in memory by createdAt descending
@@ -111,7 +110,6 @@ class OrdersController {
       } catch (indexError) {
         // If index is not ready yet, fetch without orderBy and sort in memory
         if (indexError.message && indexError.message.includes('index')) {
-          console.warn(`⚠️ Firestore index not ready yet for orders query, fetching without orderBy and sorting in memory`);
           const snapshot = await query.get();
           orders = docsToObjects(snapshot.docs);
           // Sort in memory by createdAt descending
