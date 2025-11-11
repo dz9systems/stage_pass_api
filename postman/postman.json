@@ -122,6 +122,44 @@
               "response": []
             },
             {
+              "name": "LIST PRODUCTION IMAGES (NEW STRUCTURE)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/upload?category=production_images&userId={{user_id}}&relatedEntityId={{production_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "upload"],
+                  "query": [
+                    { "key": "category", "value": "production_images" },
+                    { "key": "userId", "value": "{{user_id}}" },
+                    { "key": "relatedEntityId", "value": "{{production_id}}" }
+                  ]
+                },
+                "description": "List images stored under users/{userId}/production_images/{productionId}"
+              },
+              "response": []
+            },
+            {
+              "name": "LIST VENUE IMAGES (NEW STRUCTURE)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{api_base_url}}/api/upload?category=venue_images&userId={{user_id}}&relatedEntityId={{venue_id}}",
+                  "host": ["{{api_base_url}}"],
+                  "path": ["api", "upload"],
+                  "query": [
+                    { "key": "category", "value": "venue_images" },
+                    { "key": "userId", "value": "{{user_id}}" },
+                    { "key": "relatedEntityId", "value": "{{venue_id}}" }
+                  ]
+                },
+                "description": "List images stored under users/{userId}/venue_images/{venueId}"
+              },
+              "response": []
+            },
+            {
               "name": "CREATE ONBOARDING LINK",
               "request": {
                 "method": "POST",

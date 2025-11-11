@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
-const { OrdersController, TicketsController } = require("../controllers");
+const { OrdersController, TicketsController, PerformancesController, SeatmapsController } = require("../controllers");
 const { optionalAuth } = require("../middleware/auth");
 
 // Generate unique ID
@@ -124,6 +124,20 @@ router.post("/", async (req, res) => {
 
     const createdOrder = await OrdersController.upsertOrder(order);
 
+    // Get performance to find venueId and seatmapId for seatmap updates
+    let performance = null;
+    let venueId = null;
+    let seatmapId = null;
+    try {
+      performance = await PerformancesController.getPerformanceById(productionId, performanceId);
+      if (performance) {
+        venueId = performance.venueId;
+        seatmapId = performance.seatmapId;
+      }
+    } catch (perfError) {
+      // Continue without seatmap update if performance not found
+    }
+
     // Create tickets if provided as objects
     const ticketIds = [];
     if (tickets && tickets.length > 0) {
@@ -151,6 +165,22 @@ router.post("/", async (req, res) => {
 
             await TicketsController.upsertTicket(orderId, ticket);
             ticketIds.push(ticketId);
+
+            // Update seatmap availability if we have the required info
+            if (venueId && seatmapId && ticketData.section && ticketData.seatNumber) {
+              try {
+                await SeatmapsController.updateSeatAvailability(
+                  venueId,
+                  seatmapId,
+                  ticketData.section,
+                  ticketData.seatNumber,
+                  false // Mark seat as unavailable
+                );
+              } catch (seatmapError) {
+                // Log but don't fail ticket creation if seatmap update fails
+                console.error('Failed to update seatmap availability:', seatmapError.message);
+              }
+            }
           } catch (ticketError) {
           }
         }

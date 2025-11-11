@@ -414,12 +414,29 @@ router.get('/', async (req, res) => {
       folder = 'uploads',
       entityType,
       entityId,
+      // New structure parameters
+      category,
+      userId,
+      relatedEntityId,
       limit = 50,
       offset = 0
     } = req.query;
 
     let prefix = folder;
-    if (entityType && entityId) {
+    
+    // New structure: users/{userId}/{category}/{relatedEntityId}/
+    if (category && userId) {
+      const sanitizedUserId = sanitizeSegment(userId);
+      const sanitizedCategory = sanitizeSegment(category);
+      
+      if (relatedEntityId) {
+        const sanitizedRelatedId = sanitizeSegment(relatedEntityId);
+        prefix = `users/${sanitizedUserId}/${sanitizedCategory}/${sanitizedRelatedId}`;
+      } else {
+        prefix = `users/${sanitizedUserId}/${sanitizedCategory}`;
+      }
+    } else if (entityType && entityId) {
+      // Legacy structure: entityType/entityId
       prefix = `${entityType}/${entityId}`;
     }
 
@@ -434,17 +451,35 @@ router.get('/', async (req, res) => {
         try {
           const [metadata] = await file.getMetadata();
           let signedUrl;
-          try {
-            [signedUrl] = await file.getSignedUrl({
-              action: 'read',
-              expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
-            });
-          } catch (signError) {
-            // Fallback to public URL if available
-            const isPublic = metadata.acl?.some(acl => acl.entity === 'allUsers');
-            signedUrl = isPublic 
-              ? `https://storage.googleapis.com/${bucket.name}/${encodeURI(file.name)}`
-              : null;
+          const isPublic = metadata.acl?.some(acl => acl.entity === 'allUsers');
+          
+          // For user-scoped images, storage rules allow public read, so use public URL format
+          const isUserScopedImage = file.name.startsWith('users/');
+          
+          if (isPublic || isUserScopedImage) {
+            // Use public URL format (storage rules allow public read for user images)
+            signedUrl = `https://storage.googleapis.com/${bucket.name}/${encodeURI(file.name)}`;
+          } else {
+            // Try signed URL for private files
+            try {
+              [signedUrl] = await file.getSignedUrl({
+                action: 'read',
+                expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+              });
+            } catch (signError) {
+              // Fallback to public URL format if signed URL fails
+              signedUrl = `https://storage.googleapis.com/${bucket.name}/${encodeURI(file.name)}`;
+            }
+          }
+
+          // Extract relatedEntityId from path if it's a user-scoped image
+          let extractedRelatedEntityId = relatedEntityId || undefined;
+          if (isUserScopedImage && category) {
+            // Path format: users/{userId}/{category}/{relatedEntityId}/{fileName}
+            const pathParts = file.name.split('/');
+            if (pathParts.length >= 4 && pathParts[2] === category) {
+              extractedRelatedEntityId = pathParts[3];
+            }
           }
 
           return {
@@ -455,10 +490,12 @@ router.get('/', async (req, res) => {
             url: signedUrl,
             size: parseInt(metadata.size),
             mimeType: metadata.contentType,
-            folder: entityType ? undefined : folder,
-            entityType: entityType || undefined,
-            entityId: entityId || undefined,
-            public: metadata.acl?.some(acl => acl.entity === 'allUsers'),
+            folder: category ? undefined : (entityType ? undefined : folder),
+            entityType: category ? 'users' : (entityType || undefined),
+            entityId: category ? userId : (entityId || undefined),
+            category: category || undefined,
+            relatedEntityId: extractedRelatedEntityId,
+            public: isPublic || isUserScopedImage,
             uploadedAt: metadata.metadata?.uploadedAt,
             uploadedBy: metadata.metadata?.uploadedBy
           };
@@ -475,9 +512,12 @@ router.get('/', async (req, res) => {
       success: true,
       files: validFiles,
       total: validFiles.length,
-      folder,
-      entityType,
-      entityId
+      folder: category ? undefined : folder,
+      entityType: category ? 'users' : entityType,
+      entityId: category ? userId : entityId,
+      category: category || undefined,
+      userId: userId || undefined,
+      relatedEntityId: relatedEntityId || undefined
     });
 
   } catch (error) {

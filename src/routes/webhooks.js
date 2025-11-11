@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Stripe = require("stripe");
-const { OrdersController, SubscriptionsController, TicketsController, UsersController, PerformancesController, VenuesController } = require("../controllers");
+const { OrdersController, SubscriptionsController, TicketsController, UsersController, PerformancesController, VenuesController, SeatmapsController } = require("../controllers");
 const { sendReceiptEmail, sendTicketEmail, sendTicketsEmail } = require("../services/email");
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
@@ -165,6 +165,21 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
       }
     }
 
+    // Get performance to find venueId and seatmapId for seatmap updates
+    let venueId = null;
+    let seatmapId = null;
+    if (productionId && performanceId) {
+      try {
+        const performance = await PerformancesController.getPerformanceById(productionId, performanceId);
+        if (performance) {
+          venueId = performance.venueId;
+          seatmapId = performance.seatmapId;
+        }
+      } catch (perfError) {
+        // Continue without seatmap update if performance not found
+      }
+    }
+
     // Create tickets subcollection if tickets data is provided
     if (tickets && tickets.length > 0) {
       
@@ -188,6 +203,22 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
 
           await TicketsController.upsertTicket(orderId, ticket);
           ticketIds.push(ticketId);
+
+          // Update seatmap availability if we have the required info
+          if (venueId && seatmapId && ticketData.section && ticketData.seatNumber) {
+            try {
+              await SeatmapsController.updateSeatAvailability(
+                venueId,
+                seatmapId,
+                ticketData.section,
+                ticketData.seatNumber,
+                false // Mark seat as unavailable
+              );
+            } catch (seatmapError) {
+              // Log but don't fail ticket creation if seatmap update fails
+              console.error('Failed to update seatmap availability:', seatmapError.message);
+            }
+          }
         } catch (ticketError) {
         }
       }

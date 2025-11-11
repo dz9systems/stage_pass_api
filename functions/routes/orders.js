@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { OrdersController, TicketsController } = require("../controllers");
+const { OrdersController, TicketsController, PerformancesController, SeatmapsController } = require("../controllers");
 
 // Generate unique ID
 function generateId() {
@@ -63,6 +63,20 @@ router.post("/", async (req, res) => {
 
     const createdOrder = await OrdersController.upsertOrder(order);
 
+    // Get performance to find venueId and seatmapId for seatmap updates
+    let performance = null;
+    let venueId = null;
+    let seatmapId = null;
+    try {
+      performance = await PerformancesController.getPerformanceById(productionId, performanceId);
+      if (performance) {
+        venueId = performance.venueId;
+        seatmapId = performance.seatmapId;
+      }
+    } catch (perfError) {
+      // Continue without seatmap update if performance not found
+    }
+
     // Add tickets if provided
     if (tickets && tickets.length > 0) {
       for (const ticket of tickets) {
@@ -79,6 +93,22 @@ router.post("/", async (req, res) => {
           createdAt: now
         };
         await TicketsController.upsertTicket(orderId, ticketData);
+
+        // Update seatmap availability if we have the required info
+        if (venueId && seatmapId && ticket.section && ticket.seatNumber) {
+          try {
+            await SeatmapsController.updateSeatAvailability(
+              venueId,
+              seatmapId,
+              ticket.section,
+              ticket.seatNumber,
+              false // Mark seat as unavailable
+            );
+          } catch (seatmapError) {
+            // Log but don't fail ticket creation if seatmap update fails
+            console.error('Failed to update seatmap availability:', seatmapError.message);
+          }
+        }
       }
     }
 
