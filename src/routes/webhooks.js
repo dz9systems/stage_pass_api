@@ -35,6 +35,20 @@ async function resolveUserIdFromCustomer(stripeCustomerId, stripeAccount = null)
 }
 
 /**
+ * Ensure the local user record stores the given stripeCustomerId
+ */
+async function backfillStripeCustomerId(userId, stripeCustomerId) {
+  if (!userId || !stripeCustomerId) return;
+  try {
+    const user = await UsersController.getUserById(userId);
+    if (user && user.stripeCustomerId !== stripeCustomerId) {
+      await UsersController.updateUser(userId, { stripeCustomerId });
+    }
+  } catch (err) {
+  }
+}
+
+/**
  * Generate secure view token for public order access
  */
 function generateViewToken() {
@@ -529,6 +543,10 @@ async function processWebhookEvent(event) {
         }
 
         if (userId) {
+          await backfillStripeCustomerId(userId, stripeCustomerId);
+        }
+
+        if (userId) {
           try {
             const localSubscription = {
               userId,
@@ -563,6 +581,10 @@ async function processWebhookEvent(event) {
         }
 
         if (userId) {
+          await backfillStripeCustomerId(userId, stripeCustomerId);
+        }
+
+        if (userId) {
           try {
             const localSubscription = await SubscriptionsController.getUserSubscriptionById(userId);
             if (localSubscription) {
@@ -589,6 +611,10 @@ async function processWebhookEvent(event) {
         
         if (!userId && subscription.metadata && subscription.metadata.userId) {
           userId = subscription.metadata.userId;
+        }
+
+        if (userId) {
+          await backfillStripeCustomerId(userId, stripeCustomerId);
         }
 
         if (userId) {
@@ -631,6 +657,10 @@ async function processWebhookEvent(event) {
           }
 
           if (userId) {
+            await backfillStripeCustomerId(userId, stripeCustomerId);
+          }
+
+          if (userId) {
             try {
               const localSubscription = await SubscriptionsController.getUserSubscriptionById(userId);
               if (localSubscription) {
@@ -668,6 +698,10 @@ async function processWebhookEvent(event) {
               }
             } catch (err) {
             }
+          }
+
+          if (userId) {
+            await backfillStripeCustomerId(userId, stripeCustomerId);
           }
 
           if (userId) {

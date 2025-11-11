@@ -47,6 +47,20 @@ async function resolveUserIdFromCustomer(stripeCustomerId, stripeAccount = null)
 }
 
 /**
+ * Ensure the local user record stores the given stripeCustomerId
+ */
+async function backfillStripeCustomerId(userId, stripeCustomerId) {
+  if (!userId || !stripeCustomerId) return;
+  try {
+    const user = await UsersController.getUserById(userId);
+    if (user && user.stripeCustomerId !== stripeCustomerId) {
+      await UsersController.updateUser(userId, { stripeCustomerId });
+    }
+  } catch (err) {
+  }
+}
+
+/**
  * Generate secure view token for public order access
  */
 function generateViewToken() {
@@ -335,6 +349,11 @@ async function processWebhookEvent(event) {
           userId = subscription.metadata.userId;
         }
 
+        // Backfill user.stripeCustomerId if possible
+        if (userId) {
+          await backfillStripeCustomerId(userId, stripeCustomerId);
+        }
+
         if (userId) {
           try {
             const localSubscription = {
@@ -373,6 +392,11 @@ async function processWebhookEvent(event) {
           userId = subscription.metadata.userId;
         }
 
+        // Backfill user.stripeCustomerId if possible
+        if (userId) {
+          await backfillStripeCustomerId(userId, stripeCustomerId);
+        }
+
         if (userId) {
           try {
             const localSubscription = await SubscriptionsController.getUserSubscriptionById(userId);
@@ -404,6 +428,11 @@ async function processWebhookEvent(event) {
         // Fallback: if customer lookup fails, try subscription metadata
         if (!userId && subscription.metadata && subscription.metadata.userId) {
           userId = subscription.metadata.userId;
+        }
+
+        // Backfill user.stripeCustomerId if possible
+        if (userId) {
+          await backfillStripeCustomerId(userId, stripeCustomerId);
         }
 
         if (userId) {
@@ -450,6 +479,11 @@ async function processWebhookEvent(event) {
             }
           }
 
+          // Backfill user.stripeCustomerId if possible
+          if (userId) {
+            await backfillStripeCustomerId(userId, stripeCustomerId);
+          }
+
           if (userId) {
             try {
               const localSubscription = await SubscriptionsController.getUserSubscriptionById(userId);
@@ -493,6 +527,11 @@ async function processWebhookEvent(event) {
               }
             } catch (err) {
             }
+          }
+
+          // Backfill user.stripeCustomerId if possible
+          if (userId) {
+            await backfillStripeCustomerId(userId, stripeCustomerId);
           }
 
           if (userId) {

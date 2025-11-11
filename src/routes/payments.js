@@ -287,22 +287,13 @@ router.post("/create-subscription", async (req, res) => {
       }
     }
 
-    // Get or create Stripe customer
+    // Get or create Stripe customer (idempotent)
     let customer;
     if (customerId) {
       customer = await stripe.customers.retrieve(customerId);
     } else {
-      // Get user data to create customer
-      const user = await UsersController.getUserById(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      customer = await stripe.customers.create({
-        email: user.email,
-        name: user.displayName || user.email,
-        metadata: { userId }
-      });
+      const { getOrCreateStripeCustomer } = require('../utils/stripeCustomers');
+      customer = await getOrCreateStripeCustomer(stripe, userId);
     }
 
     // Attach payment method to customer
