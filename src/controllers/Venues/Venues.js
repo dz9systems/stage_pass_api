@@ -52,12 +52,11 @@ class VenuesController {
       const snapshot = await query.get();
       const venues = docsToObjects(snapshot.docs);
       
-      if (pagination.limit || pagination.offset) {
-        return applyPagination(venues, pagination.limit, pagination.offset);
-      }
-      
+      // Return array directly - pagination is handled in the route
       return venues;
     } catch (error) {
+      console.error('Error in getAllVenues:', error);
+      console.error('Filters:', filters);
       throw new Error(`Failed to get all venues: ${error.message}`);
     }
   }
@@ -66,19 +65,19 @@ class VenuesController {
   async getVenuesBySellerId(sellerId, filters = {}, pagination = {}) {
     try {
       const venuesRef = db.collection(this.collection);
-      const query = venuesRef.where('sellerId', '==', sellerId);
+      let query = venuesRef.where('sellerId', '==', sellerId);
       
       // Apply additional filters
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
           if (key === 'city') {
-            query.where('city', '==', value);
+            query = query.where('city', '==', value);
           } else if (key === 'state') {
-            query.where('state', '==', value);
+            query = query.where('state', '==', value);
           } else if (key === 'minCapacity') {
-            query.where('capacity', '>=', parseInt(value));
+            query = query.where('capacity', '>=', parseInt(value));
           } else if (key === 'maxCapacity') {
-            query.where('capacity', '<=', parseInt(value));
+            query = query.where('capacity', '<=', parseInt(value));
           }
         }
       });
@@ -86,10 +85,7 @@ class VenuesController {
       const snapshot = await query.get();
       const venues = docsToObjects(snapshot.docs);
       
-      if (pagination.limit || pagination.offset) {
-        return applyPagination(venues, pagination.limit, pagination.offset);
-      }
-      
+      // Return array directly - pagination is handled in the route
       return venues;
     } catch (error) {
       throw new Error(`Failed to get venues by seller ID: ${error.message}`);

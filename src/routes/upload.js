@@ -93,29 +93,54 @@ ensureBucketExists();
 // POST /api/upload - Upload a single file
 // IMPORTANT: Route is '/' because router is mounted at "/api/upload"
 // Final path = POST /api/upload
-// Field name must be exactly 'file' - FormData.append('file', ...)
-router.post('/', (req, res) => {
-  upload.single('file')(req, res, async (err) => {
-    if (err) {
-      console.error('Multer/Busboy error:', err);
+// Field name should be 'file' - FormData.append('file', ...)
+// But we'll accept common alternatives for flexibility
+router.post('/', upload.any(), async (req, res) => {
+  try {
+    // Debug logging to help diagnose upload issues
+    console.log('Upload request received:');
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('req.files:', req.files ? req.files.map(f => ({ fieldname: f.fieldname, originalname: f.originalname })) : 'missing');
+    console.log('req.body keys:', Object.keys(req.body || {}));
+    console.log('req.body:', req.body);
+    
+    // Check if any file was received
+    if (!req.files || req.files.length === 0) {
+      const receivedFields = Object.keys(req.body || {});
+      const fieldHint = receivedFields.length > 0 
+        ? ` Received fields: ${receivedFields.join(', ')}. Make sure the file is sent with field name "file" (or "image", "photo", "upload").`
+        : ' No form fields received. Make sure you are sending multipart/form-data with Content-Type header.';
+      
       return res.status(400).json({
         success: false,
         error: 'Upload error',
-        message: err.message || 'Failed to parse form data',
+        message: `No file received; expected field "file".${fieldHint}`,
+        hint: 'Use FormData and append the file with: formData.append("file", fileObject)',
       });
     }
 
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          error: 'Upload error',
-          message: 'No file received; expected field "file"',
-        });
+    // Get the first file (accept any field name, but prefer 'file')
+    let file = req.files.find(f => f.fieldname === 'file');
+    if (!file) {
+      // Try common alternative field names
+      const alternatives = ['image', 'photo', 'upload', 'fileUpload', 'picture'];
+      file = req.files.find(f => alternatives.includes(f.fieldname)) || req.files[0];
+      
+      if (file && file.fieldname !== 'file') {
+        console.warn(`File received with field name "${file.fieldname}" instead of "file". Please update your frontend to use "file".`);
       }
+    }
+    
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        error: 'Upload error',
+        message: 'File received but could not be processed',
+      });
+    }
 
     // Extract + normalize fields
-    const file = req.file;
+    // file is already defined above
     const {
       folder = 'uploads',
       isPublic: isPublicRaw,
@@ -313,16 +338,15 @@ router.post('/', (req, res) => {
         uploadedAt: new Date().toISOString(),
       },
     });
-    } catch (err) {
-      console.error('Upload error:', err);
-      console.error('Error stack:', err?.stack);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to upload file',
-        message: err?.message || 'Unknown error',
-      });
-    }
-  });
+  } catch (err) {
+    console.error('Upload error:', err);
+    console.error('Error stack:', err?.stack);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to upload file',
+      message: err?.message || 'Unknown error',
+    });
+  }
 });
 
 // POST /api/upload/multiple - Upload multiple files
