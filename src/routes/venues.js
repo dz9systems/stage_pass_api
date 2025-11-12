@@ -18,7 +18,14 @@ router.post("/", async (req, res) => {
       zipCode,
       capacity,
       imageURL,
-      sellerId
+      sellerId,
+      // Contact Information
+      contactName,
+      contactEmail,
+      contactPhone,
+      // Additional Information
+      rentalFee,
+      notes
     } = req.body;
 
     // Validate required fields
@@ -41,6 +48,13 @@ router.post("/", async (req, res) => {
       capacity: capacity || 0,
       imageURL: imageURL || null,
       sellerId,
+      // Contact Information
+      contactName: contactName || null,
+      contactEmail: contactEmail || null,
+      contactPhone: contactPhone || null,
+      // Additional Information
+      rentalFee: rentalFee || null,
+      notes: notes || null,
       createdAt: now,
       updatedAt: now,
       seatmaps: {} // Initialize empty seatmaps subcollection
@@ -177,7 +191,14 @@ router.put("/:venueId", async (req, res) => {
       zipCode,
       capacity,
       imageURL,
-      sellerId
+      sellerId,
+      // Contact Information
+      contactName,
+      contactEmail,
+      contactPhone,
+      // Additional Information
+      rentalFee,
+      notes
     } = req.body;
 
     // Check if venue exists
@@ -199,6 +220,13 @@ router.put("/:venueId", async (req, res) => {
       ...(capacity !== undefined && { capacity }),
       ...(imageURL !== undefined && { imageURL }),
       ...(sellerId !== undefined && { sellerId }),
+      // Contact Information
+      ...(contactName !== undefined && { contactName }),
+      ...(contactEmail !== undefined && { contactEmail }),
+      ...(contactPhone !== undefined && { contactPhone }),
+      // Additional Information
+      ...(rentalFee !== undefined && { rentalFee }),
+      ...(notes !== undefined && { notes }),
       updatedAt: new Date().toISOString()
     };
 

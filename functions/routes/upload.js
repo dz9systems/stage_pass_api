@@ -91,11 +91,13 @@ async function ensureBucketExists() {
 ensureBucketExists();
 
 // POST /api/upload - Upload a single file
-// Use multer inline to handle errors properly
+// IMPORTANT: Route is '/' because router is mounted at "/api/upload"
+// Final path = POST /api/upload
+// Field name must be exactly 'file' - FormData.append('file', ...)
 router.post('/', (req, res) => {
   upload.single('file')(req, res, async (err) => {
     if (err) {
-      console.error('Multer error:', err);
+      console.error('Multer/Busboy error:', err);
       return res.status(400).json({
         success: false,
         error: 'Upload error',
@@ -107,8 +109,8 @@ router.post('/', (req, res) => {
       if (!req.file) {
         return res.status(400).json({
           success: false,
-          error: 'No file provided',
-          message: 'No file received (field name must be "file")'
+          error: 'Upload error',
+          message: 'No file received; expected field "file"',
         });
       }
 
