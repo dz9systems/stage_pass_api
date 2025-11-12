@@ -8,8 +8,9 @@
     "test-firebase": "node test-firebase.js",
     "firebase:emulators": "firebase emulators:start",
     "firebase:deploy": "firebase deploy --only functions",
-    "firebase:deploy-rules": "firebase deploy --only firestore:rules,firestore:indexes",
-    "firebase:deploy-all": "firebase deploy"
+    "firebase:deploy-rules": "firebase deploy --only firestore:rules,firestore:indexes,storage",
+    "firebase:deploy-all": "firebase deploy",
+    "make-images-public": "node scripts/make-user-images-public.js"
   },
   "keywords": [],
   "author": "",

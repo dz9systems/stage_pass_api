@@ -253,7 +253,8 @@ router.post('/', upload.single('file'), async (req, res) => {
     });
 
     // Toggle public ACL if requested
-    if (isPublic) {
+    // For user images (new structure), always make public since storage rules allow public read
+    if (isPublic || usingNewStructure) {
       await gcsFile.makePublic();
     }
 
@@ -586,6 +587,69 @@ router.get('/:fileId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get file information',
+      message: error.message
+    });
+  }
+});
+
+// PATCH /api/upload/make-public - Make a file or files public
+router.patch('/make-public', async (req, res) => {
+  try {
+    const { filePath, prefix } = req.body;
+
+    if (!filePath && !prefix) {
+      return res.status(400).json({
+        success: false,
+        error: 'Either filePath or prefix must be provided'
+      });
+    }
+
+    let files = [];
+    
+    if (filePath) {
+      // Make a single file public
+      const file = bucket.file(filePath);
+      const [exists] = await file.exists();
+      if (!exists) {
+        return res.status(404).json({
+          success: false,
+          error: 'File not found'
+        });
+      }
+      files = [file];
+    } else if (prefix) {
+      // Make all files with the given prefix public
+      const [fileList] = await bucket.getFiles({ prefix });
+      files = fileList;
+    }
+
+    const results = [];
+    for (const file of files) {
+      try {
+        await file.makePublic();
+        results.push({
+          path: file.name,
+          success: true
+        });
+      } catch (error) {
+        results.push({
+          path: file.name,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Made ${results.filter(r => r.success).length} file(s) public`,
+      results
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to make files public',
       message: error.message
     });
   }
