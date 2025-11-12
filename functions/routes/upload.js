@@ -91,220 +91,236 @@ async function ensureBucketExists() {
 ensureBucketExists();
 
 // POST /api/upload - Upload a single file
-router.post('/', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, error: 'No file provided' });
+// Use multer inline to handle errors properly
+router.post('/', (req, res) => {
+  upload.single('file')(req, res, async (err) => {
+    if (err) {
+      console.error('Multer error:', err);
+      return res.status(400).json({
+        success: false,
+        error: 'Upload error',
+        message: err.message || 'Failed to parse form data',
+      });
     }
 
-    // Extract + normalize fields
-    const file = req.file;
-    const {
-      folder = 'uploads',
-      isPublic: isPublicRaw,
-      entityType: entityTypeRaw = 'general', // 'venues', 'productions', 'users', 'general'
-      entityId: entityIdRaw = null,
-      // New parameters for user image structure
-      category: categoryRaw = null,
-      userId: userIdRaw = null,
-      relatedEntityId: relatedEntityIdRaw = null,
-      fileName: fileNameRaw = null
-    } = req.body;
-
-    const entityType = entityTypeRaw || 'general';
-    const entityId = entityIdRaw || null;
-    const category = categoryRaw || null;
-    const userId = userIdRaw || null;
-    const relatedEntityId = relatedEntityIdRaw || null;
-    const fileName = fileNameRaw || null;
-
-    // Determine if using new structure
-    const usingNewStructure = category && userId;
-
-    // For new structure (user images), default to public if not explicitly set
-    // Images are meant to be publicly accessible (storage rules allow public read)
-    let isPublic;
-    if (usingNewStructure) {
-      // If isPublicRaw is explicitly provided (not null/undefined/empty), use it
-      // Otherwise default to true for user images
-      if (isPublicRaw !== null && isPublicRaw !== undefined && isPublicRaw !== '') {
-        isPublic = parseBool(isPublicRaw);
-      } else {
-        // Default to public for user images if not specified
-        isPublic = true;
-      }
-    } else {
-      // Legacy structure: default to false if not specified
-      isPublic = parseBool(isPublicRaw);
-    }
-
-    // Validate category if using new structure
-    if (usingNewStructure) {
-      if (!ALLOWED_CATEGORIES.has(category)) {
+    try {
+      if (!req.file) {
         return res.status(400).json({
           success: false,
-          error: 'Invalid category: allowed=venue_images,production_images,settings_images'
+          error: 'No file provided',
+          message: 'No file received (field name must be "file")'
         });
       }
 
-      // Validate required fields based on category
-      if (category === 'venue_images' || category === 'production_images') {
-        if (!relatedEntityId) {
-          return res.status(400).json({
-            success: false,
-            error: `relatedEntityId is required for ${category}`
-          });
+      // Extract + normalize fields
+      const file = req.file;
+      const {
+        folder = 'uploads',
+        isPublic: isPublicRaw,
+        entityType: entityTypeRaw = 'general', // 'venues', 'productions', 'users', 'general'
+        entityId: entityIdRaw = null,
+        // New parameters for user image structure
+        category: categoryRaw = null,
+        userId: userIdRaw = null,
+        relatedEntityId: relatedEntityIdRaw = null,
+        fileName: fileNameRaw = null
+      } = req.body;
+
+      const entityType = entityTypeRaw || 'general';
+      const entityId = entityIdRaw || null;
+      const category = categoryRaw || null;
+      const userId = userIdRaw || null;
+      const relatedEntityId = relatedEntityIdRaw || null;
+      const fileName = fileNameRaw || null;
+
+      // Determine if using new structure
+      const usingNewStructure = category && userId;
+
+      // For new structure (user images), default to public if not explicitly set
+      // Images are meant to be publicly accessible (storage rules allow public read)
+      let isPublic;
+      if (usingNewStructure) {
+      // If isPublicRaw is explicitly provided (not null/undefined/empty), use it
+      // Otherwise default to true for user images
+        if (isPublicRaw !== null && isPublicRaw !== undefined && isPublicRaw !== '') {
+          isPublic = parseBool(isPublicRaw);
+        } else {
+        // Default to public for user images if not specified
+          isPublic = true;
         }
-        if (!fileName) {
-          return res.status(400).json({
-            success: false,
-            error: `fileName is required for ${category}`
-          });
-        }
-      }
-      // settings_images doesn't require relatedEntityId or fileName (uses fixed name)
-    } else {
-      // Legacy structure validation
-      if (!ALLOWED_ENTITY_TYPES.has(entityType)) {
-        return res.status(400).json({ success: false, error: 'Invalid entityType' });
-      }
-    }
-
-    // Generate a stable internal id for tracking
-    const internalId = generateId();
-
-    // Derive extension: prefer original name; fall back to mimetype
-    const origExt = file.originalname.includes('.') ? file.originalname.split('.').pop() : '';
-    const mimeExt = mime.extension(file.mimetype) || '';
-    const ext = sanitizeSegment((origExt || mimeExt || 'bin').toLowerCase());
-
-    // Build file path based on structure
-    const filePath = buildStoragePath({
-      entityType: entityId ? entityType : null,
-      entityId: entityId || null,
-      folder,
-      fileId: internalId,
-      ext,
-      category,
-      userId,
-      relatedEntityId,
-      fileName,
-    });
-
-    const gcsFile = bucket.file(filePath);
-
-    // Handle overwrite logic
-    if (usingNewStructure) {
-      // For settings_images, always allow overwrite (single file per user)
-      if (category === 'settings_images') {
-        // No check needed, will overwrite
       } else {
+      // Legacy structure: default to false if not specified
+        isPublic = parseBool(isPublicRaw);
+      }
+
+      // Validate category if using new structure
+      if (usingNewStructure) {
+        if (!ALLOWED_CATEGORIES.has(category)) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid category: allowed=venue_images,production_images,settings_images'
+          });
+        }
+
+        // Validate required fields based on category
+        if (category === 'venue_images' || category === 'production_images') {
+          if (!relatedEntityId) {
+            return res.status(400).json({
+              success: false,
+              error: `relatedEntityId is required for ${category}`
+            });
+          }
+          if (!fileName) {
+            return res.status(400).json({
+              success: false,
+              error: `fileName is required for ${category}`
+            });
+          }
+        }
+      // settings_images doesn't require relatedEntityId or fileName (uses fixed name)
+      } else {
+      // Legacy structure validation
+        if (!ALLOWED_ENTITY_TYPES.has(entityType)) {
+          return res.status(400).json({ success: false, error: 'Invalid entityType' });
+        }
+      }
+
+      // Generate a stable internal id for tracking
+      const internalId = generateId();
+
+      // Derive extension: prefer original name; fall back to mimetype
+      const origExt = file.originalname.includes('.') ? file.originalname.split('.').pop() : '';
+      const mimeExt = mime.extension(file.mimetype) || '';
+      const ext = sanitizeSegment((origExt || mimeExt || 'bin').toLowerCase());
+
+      // Build file path based on structure
+      const filePath = buildStoragePath({
+        entityType: entityId ? entityType : null,
+        entityId: entityId || null,
+        folder,
+        fileId: internalId,
+        ext,
+        category,
+        userId,
+        relatedEntityId,
+        fileName,
+      });
+
+      const gcsFile = bucket.file(filePath);
+
+      // Handle overwrite logic
+      if (usingNewStructure) {
+      // For settings_images, always allow overwrite (single file per user)
+        if (category === 'settings_images') {
+        // No check needed, will overwrite
+        } else {
         // For venue_images and production_images, allow overwrite by default
         // but check if file exists and allowOverwrite is false
-        if (!shouldAllowOverwrite(req)) {
+          if (!shouldAllowOverwrite(req)) {
+            const [exists] = await gcsFile.exists();
+            if (exists) {
+              return res.status(409).json({
+                success: false,
+                error: 'File already exists. Set allowOverwrite=true to replace.',
+                path: filePath,
+              });
+            }
+          }
+        }
+      } else {
+      // Legacy: Guard against overwrite if using entityId path
+        if (entityId && !shouldAllowOverwrite(req)) {
           const [exists] = await gcsFile.exists();
           if (exists) {
             return res.status(409).json({
               success: false,
-              error: 'File already exists. Set allowOverwrite=true to replace.',
+              error: 'File already exists for this entity. Set allowOverwrite=true to replace.',
               path: filePath,
             });
           }
         }
       }
-    } else {
-      // Legacy: Guard against overwrite if using entityId path
-      if (entityId && !shouldAllowOverwrite(req)) {
-        const [exists] = await gcsFile.exists();
-        if (exists) {
-          return res.status(409).json({
-            success: false,
-            error: 'File already exists for this entity. Set allowOverwrite=true to replace.',
-            path: filePath,
-          });
-        }
-      }
-    }
 
-    // Helpful headers
-    const cacheControl = isPublic
-      ? 'public, max-age=31536000, immutable'
-      : 'private, max-age=0, no-cache';
-    const contentDisposition = `inline; filename="${file.originalname.replace(/"/g, '')}"`;
+      // Helpful headers
+      const cacheControl = isPublic
+        ? 'public, max-age=31536000, immutable'
+        : 'private, max-age=0, no-cache';
+      const contentDisposition = `inline; filename="${file.originalname.replace(/"/g, '')}"`;
 
-    // Save buffer (simpler than manual createWriteStream)
-    await gcsFile.save(file.buffer, {
-      resumable: false,
-      metadata: {
-        contentType: file.mimetype,
-        cacheControl,
-        contentDisposition,
+      // Save buffer (simpler than manual createWriteStream)
+      await gcsFile.save(file.buffer, {
+        resumable: false,
         metadata: {
-          originalName: file.originalname,
-          uploadedAt: new Date().toISOString(),
-          uploadedBy: (req.user?.uid || userId || req.body.userId || 'anonymous'),
-          entityType: usingNewStructure ? 'users' : entityType,
-          entityId: usingNewStructure ? userId : (entityId || ''),
-          category: category || '',
-          relatedEntityId: relatedEntityId || '',
-          internalId,
+          contentType: file.mimetype,
+          cacheControl,
+          contentDisposition,
+          metadata: {
+            originalName: file.originalname,
+            uploadedAt: new Date().toISOString(),
+            uploadedBy: (req.user?.uid || userId || req.body.userId || 'anonymous'),
+            entityType: usingNewStructure ? 'users' : entityType,
+            entityId: usingNewStructure ? userId : (entityId || ''),
+            category: category || '',
+            relatedEntityId: relatedEntityId || '',
+            internalId,
+          },
         },
-      },
-    });
+      });
 
-    // Toggle public ACL if requested
-    // For user images (new structure), always make public since storage rules allow public read
-    if (isPublic || usingNewStructure) {
-      await gcsFile.makePublic();
-    }
+      // Toggle public ACL if requested
+      // For user images (new structure), always make public since storage rules allow public read
+      if (isPublic || usingNewStructure) {
+        await gcsFile.makePublic();
+      }
 
-    // Build URL: public uses durable URL; private gets a signed URL (v4)
-    let url;
-    if (isPublic) {
-      url = `https://storage.googleapis.com/${bucket.name}/${encodeURI(filePath)}`;
-    } else {
-      try {
-        const [signedUrl] = await gcsFile.getSignedUrl({
-          version: 'v4',
-          action: 'read',
-          expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-        });
-        url = signedUrl;
-      } catch (signError) {
+      // Build URL: public uses durable URL; private gets a signed URL (v4)
+      let url;
+      if (isPublic) {
+        url = `https://storage.googleapis.com/${bucket.name}/${encodeURI(filePath)}`;
+      } else {
+        try {
+          const [signedUrl] = await gcsFile.getSignedUrl({
+            version: 'v4',
+            action: 'read',
+            expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+          });
+          url = signedUrl;
+        } catch (signError) {
         // Fallback to public URL if signed URL generation fails
         // In production, you should ensure credentials are properly configured
-        url = `https://storage.googleapis.com/${bucket.name}/${encodeURI(filePath)}`;
+          url = `https://storage.googleapis.com/${bucket.name}/${encodeURI(filePath)}`;
+        }
       }
-    }
 
-    return res.json({
-      success: true,
-      file: {
-        id: internalId, // always present and traceable
-        entityId: usingNewStructure ? userId : (entityId || null),
-        entityType: usingNewStructure ? 'users' : entityType,
-        category: category || null,
-        relatedEntityId: relatedEntityId || null,
-        originalName: file.originalname,
-        fileName: filePath.split('/').pop(),
-        path: filePath,
-        url,
-        size: file.size,
-        mimeType: file.mimetype,
-        folder: usingNewStructure ? undefined : (entityId ? undefined : folder), // folder only relevant for non-entity uploads
-        public: isPublic,
-        uploadedAt: new Date().toISOString(),
-      },
-    });
-  } catch (err) {
-    console.error('Upload error:', err);
-    console.error('Error stack:', err?.stack);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to upload file',
-      message: err?.message || 'Unknown error',
-    });
-  }
+      return res.json({
+        success: true,
+        file: {
+          id: internalId, // always present and traceable
+          entityId: usingNewStructure ? userId : (entityId || null),
+          entityType: usingNewStructure ? 'users' : entityType,
+          category: category || null,
+          relatedEntityId: relatedEntityId || null,
+          originalName: file.originalname,
+          fileName: filePath.split('/').pop(),
+          path: filePath,
+          url,
+          size: file.size,
+          mimeType: file.mimetype,
+          folder: usingNewStructure ? undefined : (entityId ? undefined : folder), // folder only relevant for non-entity uploads
+          public: isPublic,
+          uploadedAt: new Date().toISOString(),
+        },
+      });
+    } catch (err) {
+      console.error('Upload error:', err);
+      console.error('Error stack:', err?.stack);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to upload file',
+        message: err?.message || 'Unknown error',
+      });
+    }
+  });
 });
 
 // POST /api/upload/multiple - Upload multiple files
@@ -370,9 +386,9 @@ router.post('/multiple', upload.array('files', 10), async (req, res) => {
         const fileUrl = isPublic === 'true' || isPublic === true
           ? `https://storage.googleapis.com/${bucket.name}/${filePath}`
           : await fileUpload.getSignedUrl({
-              action: 'read',
-              expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
-            });
+            action: 'read',
+            expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+          });
 
         uploadedFiles.push({
           id: fileId,
@@ -426,12 +442,12 @@ router.get('/', async (req, res) => {
     } = req.query;
 
     let prefix = folder;
-    
+
     // New structure: users/{userId}/{category}/{relatedEntityId}/
     if (category && userId) {
       const sanitizedUserId = sanitizeSegment(userId);
       const sanitizedCategory = sanitizeSegment(category);
-      
+
       if (relatedEntityId) {
         const sanitizedRelatedId = sanitizeSegment(relatedEntityId);
         prefix = `users/${sanitizedUserId}/${sanitizedCategory}/${sanitizedRelatedId}`;
@@ -455,10 +471,10 @@ router.get('/', async (req, res) => {
           const [metadata] = await file.getMetadata();
           let signedUrl;
           const isPublic = metadata.acl?.some(acl => acl.entity === 'allUsers');
-          
+
           // For user-scoped images, storage rules allow public read, so use public URL format
           const isUserScopedImage = file.name.startsWith('users/');
-          
+
           if (isPublic || isUserScopedImage) {
             // Use public URL format (storage rules allow public read for user images)
             signedUrl = `https://storage.googleapis.com/${bucket.name}/${encodeURI(file.name)}`;
@@ -559,7 +575,7 @@ router.get('/:fileId', async (req, res) => {
     } catch (signError) {
       // Fallback to public URL if available
       const isPublic = metadata.acl?.some(acl => acl.entity === 'allUsers');
-      signedUrl = isPublic 
+      signedUrl = isPublic
         ? `https://storage.googleapis.com/${bucket.name}/${encodeURI(filePath)}`
         : null;
       if (!signedUrl) {
@@ -607,7 +623,7 @@ router.patch('/make-public', async (req, res) => {
     }
 
     let files = [];
-    
+
     if (filePath) {
       // Make a single file public
       const file = bucket.file(filePath);
@@ -694,6 +710,10 @@ router.delete('/:fileId', async (req, res) => {
 
 // Error handling middleware for multer
 router.use((error, req, res, next) => {
+  console.error('Multer/Upload error:', error);
+  console.error('Error code:', error.code);
+  console.error('Error message:', error.message);
+
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
@@ -701,12 +721,27 @@ router.use((error, req, res, next) => {
         error: 'File too large. Maximum size is 10MB.'
       });
     }
+    // Handle other multer errors
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: error.message || `Multer error: ${error.code}`
+    });
   }
 
   if (error.message === 'Invalid file type. Only images, documents, and videos are allowed.') {
     return res.status(400).json({
       success: false,
       error: error.message
+    });
+  }
+
+  // Handle "Unexpected end of form" and other parsing errors
+  if (error.message && error.message.includes('Unexpected end')) {
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: 'The upload request was incomplete. Please check your network connection and try again.'
     });
   }
 

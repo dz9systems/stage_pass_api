@@ -91,11 +91,26 @@ async function ensureBucketExists() {
 ensureBucketExists();
 
 // POST /api/upload - Upload a single file
-router.post('/', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, error: 'No file provided' });
+// Use multer inline to handle errors properly
+router.post('/', (req, res) => {
+  upload.single('file')(req, res, async (err) => {
+    if (err) {
+      console.error('Multer error:', err);
+      return res.status(400).json({
+        success: false,
+        error: 'Upload error',
+        message: err.message || 'Failed to parse form data',
+      });
     }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'No file provided',
+          message: 'No file received (field name must be "file")'
+        });
+      }
 
     // Extract + normalize fields
     const file = req.file;
@@ -296,13 +311,16 @@ router.post('/', upload.single('file'), async (req, res) => {
         uploadedAt: new Date().toISOString(),
       },
     });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to upload file',
-      message: err?.message || 'Unknown error',
-    });
-  }
+    } catch (err) {
+      console.error('Upload error:', err);
+      console.error('Error stack:', err?.stack);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to upload file',
+        message: err?.message || 'Unknown error',
+      });
+    }
+  });
 });
 
 // POST /api/upload/multiple - Upload multiple files

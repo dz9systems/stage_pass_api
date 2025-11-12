@@ -30,6 +30,9 @@ require("./triggers/usersOnCreate");
 const app = express();
 const path = require("path");
 
+// Enable trust proxy for Cloud Run
+app.enable('trust proxy');
+
 // CORS
 const corsOptions = {
   origin: ["http://localhost:5173","http://127.0.0.1:5173","https://www.stagepasspro.com","https://stage-pass-b1d9b.web.app","https://project-theatre-ticketing-system-with-crm-integration-440.magicpatterns.app"],
@@ -43,16 +46,18 @@ app.use(cors(corsOptions));
 // Path goes up one level from functions/ to access root assets/ folder
 app.use("/assets", express.static(path.join(__dirname, "..", "assets")));
 
-
-
 // --- Webhooks MUST be mounted before JSON parsing ---
 app.use("/webhooks", bodyParser.raw({ type: "application/json" }), webhooksRouter);
 
 // Upload route MUST be before JSON parser (multer needs to parse multipart/form-data)
 app.use("/api/upload", uploadRouter);
 
-// JSON for everything else
-app.use(bodyParser.json());
+// Explicit OPTIONS handler for CORS preflight on upload route
+app.options("/api/upload", cors(corsOptions));
+
+// JSON for everything else (with size limit to prevent interference)
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Feature routers
 app.use("/connect/express", connectExpressRouter);

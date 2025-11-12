@@ -46,8 +46,12 @@ app.get("/get-token", (req, res) => {
 // --- Webhooks MUST be mounted before JSON parsing ---
 app.use("/webhooks", bodyParser.raw({ type: "application/json" }), webhooksRouter);
 
+// Upload route MUST be before JSON parser (multer needs to parse multipart/form-data)
+app.use("/api/upload", uploadRouter);
+
 // JSON for everything else
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Feature routers
 app.use("/connect/express", connectExpressRouter);
@@ -64,7 +68,6 @@ app.use("/api/venues", venuesRouter);
 app.use("/api/venues", seatmapsRouter); // seatmaps are subcollection of venues
 app.use("/api/orders", ordersRouter);
 app.use("/api/orders", ticketsRouter); // tickets are subcollection of orders
-app.use("/api/upload", uploadRouter);
 app.use("/api/subscriptions", subscriptionsRouter);
 app.use("/api/emails", emailsRouter);
 
