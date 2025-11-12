@@ -21,6 +21,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^5.1.0",
+    "firebase": "^12.5.0",
     "firebase-admin": "^13.6.0",
     "firebase-functions": "^7.0.0",
     "mime-types": "^3.0.1",

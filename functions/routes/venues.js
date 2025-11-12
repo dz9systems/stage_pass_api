@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { VenuesController } = require("../controllers");
+const { uploadPhoto } = require("../utils/uploadPhoto");
 
 // Generate unique ID
 function generateId() {
@@ -280,6 +281,66 @@ router.patch("/:venueId", async (req, res) => {
   } catch (error) {
     res.status(500).json({ 
       error: 'Failed to update venue',
+      message: error.message 
+    });
+  }
+});
+
+// UPLOAD - Upload venue image
+router.post("/:venueId/image", async (req, res) => {
+  try {
+    const { venueId } = req.params;
+    const { uri, fileName, sellerId } = req.body;
+
+    // Validate required fields
+    if (!uri) {
+      return res.status(400).json({ 
+        error: "uri is required" 
+      });
+    }
+
+    if (!sellerId) {
+      return res.status(400).json({ 
+        error: "sellerId is required" 
+      });
+    }
+
+    // Check if venue exists
+    const existingVenue = await VenuesController.getVenueById(venueId);
+    if (!existingVenue) {
+      return res.status(404).json({ 
+        error: 'Venue not found' 
+      });
+    }
+
+    // Generate filename if not provided
+    const imageFileName = fileName || `venue-${venueId}-${Date.now()}.jpg`;
+
+    // Upload photo to Firebase Storage
+    const downloadURL = await uploadPhoto({
+      fileName: imageFileName,
+      uid: sellerId,
+      uri: uri
+    });
+
+    // Update venue with new image URL
+    const updatedVenue = {
+      ...existingVenue,
+      imageURL: downloadURL,
+      updatedAt: new Date().toISOString()
+    };
+
+    const result = await VenuesController.upsertVenue(updatedVenue);
+
+    res.json({
+      success: true,
+      imageURL: downloadURL,
+      venue: result
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to upload venue image',
       message: error.message 
     });
   }
