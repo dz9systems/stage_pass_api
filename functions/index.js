@@ -48,6 +48,9 @@ app.use("/assets", express.static(path.join(__dirname, "..", "assets")));
 // --- Webhooks MUST be mounted before JSON parsing ---
 app.use("/webhooks", bodyParser.raw({ type: "application/json" }), webhooksRouter);
 
+// Upload route MUST be before JSON parser (multer needs to parse multipart/form-data)
+app.use("/api/upload", uploadRouter);
+
 // JSON for everything else
 app.use(bodyParser.json());
 
@@ -66,7 +69,6 @@ app.use("/api/venues", venuesRouter);
 app.use("/api/venues", seatmapsRouter); // seatmaps are subcollection of venues
 app.use("/api/orders", ordersRouter);
 app.use("/api/orders", ticketsRouter); // tickets are subcollection of orders
-app.use("/api/upload", uploadRouter);
 app.use("/api/subscriptions", subscriptionsRouter);
 app.use("/api/emails", emailsRouter);
 

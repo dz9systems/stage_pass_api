@@ -50,7 +50,7 @@ function buildStoragePath({ entityType, entityId, folder, fileId, ext, category,
 }
 
 function shouldAllowOverwrite(req) {
-  return parseBool(req.body.allowOverwrite) || parseBool(req.query.allowOverwrite);
+  return parseBool(req.body?.allowOverwrite) || parseBool(req.query?.allowOverwrite);
 }
 
 // Configure multer for memory storage
@@ -297,6 +297,8 @@ router.post('/', upload.single('file'), async (req, res) => {
       },
     });
   } catch (err) {
+    console.error('Upload error:', err);
+    console.error('Error stack:', err?.stack);
     return res.status(500).json({
       success: false,
       error: 'Failed to upload file',
