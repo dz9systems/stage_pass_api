@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const express = require('express');
 const multer = require('multer');
 const mime = require('mime-types');
@@ -711,7 +712,7 @@ router.delete('/:fileId', async (req, res) => {
 });
 
 // Error handling middleware for multer
-router.use((error, req, res, next) => {
+router.use((error, req, res, _next) => {
   console.error('Multer/Upload error:', error);
   console.error('Error code:', error.code);
   console.error('Error message:', error.message);
