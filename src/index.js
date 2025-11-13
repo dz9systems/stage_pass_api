@@ -43,7 +43,7 @@ app.get("/get-token", (req, res) => {
 });
 
 // --- Webhooks MUST be mounted before JSON parsing ---
-app.use("/webhooks", bodyParser.raw({ type: "application/json" }), webhooksRouter);
+app.use("/webhooks", express.raw({ type: "application/json" }), webhooksRouter);
 
 // Upload route MUST be before JSON parser (multer needs to parse multipart/form-data)
 // IMPORTANT: No body parsing middleware should be applied before this route

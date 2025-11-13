@@ -46,7 +46,7 @@ app.use(cors(corsOptions));
 app.use("/assets", express.static(path.join(__dirname, "..", "assets")));
 
 // --- Webhooks MUST be mounted before JSON parsing ---
-app.use("/webhooks", bodyParser.raw({ type: "application/json" }), webhooksRouter);
+app.use("/webhooks", express.raw({ type: "application/json" }), webhooksRouter);
 
 // Upload route MUST be before JSON parser (multer needs to parse multipart/form-data)
 app.use("/api/upload", uploadRouter);

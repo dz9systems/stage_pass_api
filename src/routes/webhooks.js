@@ -16,7 +16,7 @@ async function resolveUserIdFromCustomer(stripeCustomerId, stripeAccount = null)
     // First, try to get userId from customer metadata
     const customerOptions = stripeAccount ? { stripeAccount } : {};
     const customer = await stripe.customers.retrieve(stripeCustomerId, customerOptions);
-    
+
     if (customer.metadata && customer.metadata.userId) {
       return customer.metadata.userId;
     }
@@ -73,14 +73,14 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
 
     // Extract order data from PaymentIntent metadata
     const metadata = pi.metadata || {};
-    
+
     // Required fields for order creation
     // Frontend sends sellerId (not theaterId or userId)
     const sellerId = metadata.sellerId;
     const productionId = metadata.productionId;
     const performanceId = metadata.performanceId;
     const totalAmount = pi.amount; // PaymentIntent amount is in cents
-    
+
     // Validate required fields
     if (!sellerId || !productionId || !performanceId || !totalAmount) {
       const missingFields = [];
@@ -88,7 +88,7 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
       if (!productionId) missingFields.push('productionId');
       if (!performanceId) missingFields.push('performanceId');
       if (!totalAmount) missingFields.push('amount');
-      
+
       throw new Error(`Cannot create order: missing required fields in PaymentIntent metadata: ${missingFields.join(', ')}`);
     }
 
@@ -153,10 +153,10 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
     if (metadata.tickets) {
       try {
         // Try to parse as JSON string
-        tickets = typeof metadata.tickets === 'string' 
-          ? JSON.parse(metadata.tickets) 
+        tickets = typeof metadata.tickets === 'string'
+          ? JSON.parse(metadata.tickets)
           : metadata.tickets;
-        
+
         if (!Array.isArray(tickets)) {
           tickets = [];
         }
@@ -182,10 +182,10 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
 
     // Create tickets subcollection if tickets data is provided
     if (tickets && tickets.length > 0) {
-      
+
       const orderUrl = `${baseUrl}/orders/${orderId}?token=${encodeURIComponent(viewToken)}`;
       const ticketIds = [];
-      
+
       for (const ticketData of tickets) {
         try {
           const ticketId = crypto.randomBytes(16).toString('hex');
@@ -254,7 +254,7 @@ async function createOrderFromPaymentIntent(pi, getStripeOptions) {
 async function processWebhookEvent(event) {
   const connectedAccount = event.account || "platform";
   const stripeAccount = event.account || null;
-  
+
   // Only log email-related events
   if (event.type === 'payment_intent.succeeded') {
     const pi = event.data?.object;
@@ -268,7 +268,7 @@ async function processWebhookEvent(event) {
     switch (event.type) {
       case "payment_intent.succeeded": {
         let pi = event.data.object;
-        
+
         // If this is a connected account event, metadata might not be present
         // Fetch the PaymentIntent from the platform account (without account context) to get full metadata
         if (connectedAccount !== "platform" && (!pi.metadata || !pi.metadata.orderId)) {
@@ -277,7 +277,7 @@ async function processWebhookEvent(event) {
           } catch (err) {
           }
         }
-        
+
         // Check if orderId is missing or empty (not just falsy)
         let orderId = pi.metadata?.orderId;
         if (!orderId || orderId.trim() === '') {
@@ -286,7 +286,7 @@ async function processWebhookEvent(event) {
             // Create order from PaymentIntent metadata
             const createdOrder = await createOrderFromPaymentIntent(pi, getStripeOptions);
             orderId = createdOrder.id;
-            
+
             // Re-fetch PaymentIntent to get updated metadata
             try {
               pi = await stripe.paymentIntents.retrieve(pi.id, getStripeOptions());
@@ -309,7 +309,7 @@ async function processWebhookEvent(event) {
             if (!order) {
               break;
             }
-            
+
             // Ensure order has viewToken (for orders created before token system)
             if (!order.viewToken) {
               const crypto = require("crypto");
@@ -317,11 +317,11 @@ async function processWebhookEvent(event) {
               const twoYearsFromNow = new Date();
               twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2);
               const viewTokenExpiresAt = twoYearsFromNow.toISOString();
-              
+
               await OrdersController.updateOrder(orderId, { viewToken, viewTokenExpiresAt });
               order = await OrdersController.getOrderById(orderId);
             }
-            
+
             // Store baseUrl from payment intent metadata if provided (for QR code generation)
             const baseUrl = pi.metadata?.baseUrl;
             if (baseUrl && order.baseUrl !== baseUrl) {
@@ -331,7 +331,7 @@ async function processWebhookEvent(event) {
 
             // Determine recipient email - try multiple sources
             let toEmail = null;
-            
+
             // Priority 1: PaymentIntent metadata.customerEmail (most reliable - set at payment time)
             if (pi.metadata?.customerEmail) {
               toEmail = pi.metadata.customerEmail;
@@ -363,7 +363,7 @@ async function processWebhookEvent(event) {
               } catch (err) {
               }
             }
-            
+
             if (!toEmail) {
 
               break;
@@ -381,13 +381,13 @@ async function processWebhookEvent(event) {
             // Send Order Summary email with tickets
             try {
               const tickets = await TicketsController.getAllTickets(orderId);
-              
+
               // Debug: Log what's in the order object
 
               // Fetch performance and venue data if not already populated
               let performance = order.performance || null;
               let venue = order.venue || null;
-              
+
               // If we have IDs but not full objects, fetch them
               if (!performance && order.performanceId) {
                 // Validate performanceId is a valid string
@@ -405,7 +405,7 @@ async function processWebhookEvent(event) {
                     } else if (order.performanceDate) {
                       startTime = `${order.performanceDate}T00:00:00`;
                     }
-                    
+
                     performance = {
                       id: order.performanceId,
                       productionName: null,
@@ -426,7 +426,7 @@ async function processWebhookEvent(event) {
                   } else if (order.performanceDate) {
                     startTime = `${order.performanceDate}T00:00:00`;
                   }
-                  
+
                   performance = {
                     id: order.performanceId,
                     productionName: null,
@@ -437,7 +437,7 @@ async function processWebhookEvent(event) {
                 } else {
                 }
               }
-              
+
               if (!venue && order.venueId) {
                 // Validate venueId is a valid string
                 const venueId = String(order.venueId).trim();
@@ -451,7 +451,7 @@ async function processWebhookEvent(event) {
                 }
               } else if (!venue) {
               }
-              
+
               // Also check if performance has venueId
               if (!venue && performance?.venueId) {
                 const venueId = String(performance.venueId).trim();
@@ -462,7 +462,7 @@ async function processWebhookEvent(event) {
                   }
                 }
               }
-              
+
               // Fallback: Use venue data from order if venue object not available
               if (!venue && (order.venueName || order.venueAddress || order.venueCity)) {
                 venue = {
@@ -473,7 +473,7 @@ async function processWebhookEvent(event) {
                   zipCode: order.venueZipCode || null
                 };
               }
-              
+
               // Ensure performance has productionName - fetch if needed
               if (performance && !performance.productionName && !performance.title && order.productionId) {
                 try {
@@ -485,7 +485,7 @@ async function processWebhookEvent(event) {
                 } catch (err) {
                 }
               }
-              
+
               // Use performance date/time from order if performance object doesn't have it
               // Combine date and time into proper ISO datetime string
               if (performance && !performance.startTime && !performance.dateTime && !performance.date) {
@@ -511,7 +511,7 @@ async function processWebhookEvent(event) {
                   performance.date = order.performanceDate;
                 }
               }
-              
+
               // Check SendGrid configuration before sending
               if (!process.env.SENDGRID_API_KEY) {
                 throw new Error("SENDGRID_API_KEY is not set in environment variables");
@@ -519,7 +519,7 @@ async function processWebhookEvent(event) {
               if (!process.env.SENDGRID_FROM_EMAIL && !process.env.FROM_EMAIL) {
                 throw new Error("SENDGRID_FROM_EMAIL or FROM_EMAIL is not set in environment variables");
               }
-              
+
               await sendTicketsEmail({
                 to: toEmail,
                 subject: "Thank you for your order!",
@@ -563,12 +563,12 @@ async function processWebhookEvent(event) {
       }
       case "customer.subscription.created": {
         const subscription = event.data.object;
-        const stripeCustomerId = typeof subscription.customer === 'string' 
-          ? subscription.customer 
+        const stripeCustomerId = typeof subscription.customer === 'string'
+          ? subscription.customer
           : subscription.customer.id;
-        
+
         let userId = await resolveUserIdFromCustomer(stripeCustomerId, stripeAccount);
-        
+
         if (!userId && subscription.metadata && subscription.metadata.userId) {
           userId = subscription.metadata.userId;
         }
@@ -584,8 +584,8 @@ async function processWebhookEvent(event) {
               planId: subscription.metadata?.planId || null,
               planName: subscription.metadata?.planName || null,
               stripeSubscriptionId: subscription.id,
-              stripeCustomerId: typeof subscription.customer === 'string' 
-                ? subscription.customer 
+              stripeCustomerId: typeof subscription.customer === 'string'
+                ? subscription.customer
                 : subscription.customer.id,
               status: subscription.status,
               currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
@@ -601,12 +601,12 @@ async function processWebhookEvent(event) {
       }
       case "customer.subscription.updated": {
         const subscription = event.data.object;
-        const stripeCustomerId = typeof subscription.customer === 'string' 
-          ? subscription.customer 
+        const stripeCustomerId = typeof subscription.customer === 'string'
+          ? subscription.customer
           : subscription.customer.id;
-        
+
         let userId = await resolveUserIdFromCustomer(stripeCustomerId, stripeAccount);
-        
+
         if (!userId && subscription.metadata && subscription.metadata.userId) {
           userId = subscription.metadata.userId;
         }
@@ -634,12 +634,12 @@ async function processWebhookEvent(event) {
       }
       case "customer.subscription.deleted": {
         const subscription = event.data.object;
-        const stripeCustomerId = typeof subscription.customer === 'string' 
-          ? subscription.customer 
+        const stripeCustomerId = typeof subscription.customer === 'string'
+          ? subscription.customer
           : subscription.customer.id;
-        
+
         let userId = await resolveUserIdFromCustomer(stripeCustomerId, stripeAccount);
-        
+
         if (!userId && subscription.metadata && subscription.metadata.userId) {
           userId = subscription.metadata.userId;
         }
@@ -666,12 +666,12 @@ async function processWebhookEvent(event) {
       case "invoice.payment_succeeded": {
         const invoice = event.data.object;
         if (invoice.subscription) {
-          const stripeCustomerId = typeof invoice.customer === 'string' 
-            ? invoice.customer 
+          const stripeCustomerId = typeof invoice.customer === 'string'
+            ? invoice.customer
             : invoice.customer.id;
-          
+
           let userId = await resolveUserIdFromCustomer(stripeCustomerId, stripeAccount);
-          
+
           if (!userId) {
             try {
               const subscriptionOptions = getStripeOptions();
@@ -679,7 +679,7 @@ async function processWebhookEvent(event) {
                 typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription.id,
                 subscriptionOptions
               );
-              
+
               if (subscription.metadata && subscription.metadata.userId) {
                 userId = subscription.metadata.userId;
               }
@@ -710,12 +710,12 @@ async function processWebhookEvent(event) {
       case "invoice.payment_failed": {
         const invoice = event.data.object;
         if (invoice.subscription) {
-          const stripeCustomerId = typeof invoice.customer === 'string' 
-            ? invoice.customer 
+          const stripeCustomerId = typeof invoice.customer === 'string'
+            ? invoice.customer
             : invoice.customer.id;
-          
+
           let userId = await resolveUserIdFromCustomer(stripeCustomerId, stripeAccount);
-          
+
           if (!userId) {
             try {
               const subscriptionOptions = getStripeOptions();
@@ -723,7 +723,7 @@ async function processWebhookEvent(event) {
                 typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription.id,
                 subscriptionOptions
               );
-              
+
               if (subscription.metadata && subscription.metadata.userId) {
                 userId = subscription.metadata.userId;
               }
@@ -765,9 +765,9 @@ async function processWebhookEvent(event) {
 router.get("/stripe/test", async (req, res) => {
   try {
     const acct = await stripe.accounts.retrieve();
-    
-    res.json({ 
-      status: "ok", 
+
+    res.json({
+      status: "ok",
       message: "Webhook endpoint is accessible",
       timestamp: new Date().toISOString(),
       webhookSecretSet: !!process.env.STRIPE_WEBHOOK_SECRET,
@@ -787,7 +787,7 @@ router.get("/stripe/test", async (req, res) => {
   }
 });
 
-// Webhook route - bodyParser.raw is already applied in index.js for /webhooks
+
 router.post(
   "/stripe",
   async (req, res) => {
@@ -842,7 +842,7 @@ router.post(
       // Catch any unhandled errors in the webhook handler
       if (handlerError.stack) {
       }
-      
+
       // Always return 200 to Stripe so it doesn't retry
       // (Only if we haven't already sent a response)
       if (!res.headersSent) {
