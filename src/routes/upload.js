@@ -90,75 +90,174 @@ async function ensureBucketExists() {
 // Initialize bucket on startup
 ensureBucketExists();
 
+// Express middleware to validate multipart requests
+function validateMultipartRequest(req, res, next) {
+  const contentType = req.headers['content-type'];
+  
+  // Only validate multipart requests
+  if (!contentType || !contentType.includes('multipart/form-data')) {
+    return next();
+  }
+
+  // Validate Content-Length header exists for multipart requests
+  const contentLength = req.headers['content-length'];
+  if (!contentLength) {
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: 'Content-Length header is required for file uploads'
+    });
+  }
+
+  // Check if Content-Length is within reasonable bounds
+  const length = parseInt(contentLength, 10);
+  if (isNaN(length) || length <= 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: 'Invalid Content-Length header'
+    });
+  }
+
+  // Check if file size exceeds limit (10MB)
+  if (length > 10 * 1024 * 1024) {
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: 'File size exceeds maximum limit of 10MB'
+    });
+  }
+
+  // Set Express timeout for request (30 seconds)
+  req.setTimeout(30000, () => {
+    if (!res.headersSent) {
+      res.status(400).json({
+        success: false,
+        error: 'Upload error',
+        message: 'Request timeout: The upload request took too long'
+      });
+    }
+  });
+
+  next();
+}
+
+// Express middleware to handle multer errors
+function handleMulterError(err, req, res, next) {
+  if (!err) {
+    return next();
+  }
+
+  console.error('Multer error:', err);
+  
+  // Handle "Unexpected end of form" error
+  if (err.message && (err.message.includes('Unexpected end') || err.message.includes('Unexpected end of form'))) {
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: 'The upload request was incomplete. This usually happens when the request is cut off or the file is too large. Please check your network connection and file size, then try again.'
+    });
+  }
+
+  // Handle multer-specific errors
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        error: 'File too large. Maximum size is 10MB.'
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: err.message || `Multer error: ${err.code}`
+    });
+  }
+
+  // Pass other errors to next error handler
+  return next(err);
+}
+
 // POST /api/upload - Upload a single file
 // IMPORTANT: Route is '/' because router is mounted at "/api/upload"
 // Final path = POST /api/upload
 // Field name should be 'file' - FormData.append('file', ...)
 // But we'll accept common alternatives for flexibility
-router.post('/', upload.any(), async (req, res) => {
-  try {
-    // Debug logging to help diagnose upload issues
-    console.log('Upload request received:');
-    console.log('Content-Type:', req.headers['content-type']);
-    console.log('req.files:', req.files ? req.files.map(f => ({ fieldname: f.fieldname, originalname: f.originalname })) : 'missing');
-    console.log('req.body keys:', Object.keys(req.body || {}));
-    console.log('req.body:', req.body);
-    
-    // Check if any file was received
-    if (!req.files || req.files.length === 0) {
-      const receivedFields = Object.keys(req.body || {});
-      const fieldHint = receivedFields.length > 0 
-        ? ` Received fields: ${receivedFields.join(', ')}. Make sure the file is sent with field name "file" (or "image", "photo", "upload").`
-        : ' No form fields received. Make sure you are sending multipart/form-data with Content-Type header.';
-      
-      return res.status(400).json({
-        success: false,
-        error: 'Upload error',
-        message: `No file received; expected field "file".${fieldHint}`,
-        hint: 'Use FormData and append the file with: formData.append("file", fileObject)',
-      });
-    }
-
-    // Get the first file (accept any field name, but prefer 'file')
-    let file = req.files.find(f => f.fieldname === 'file');
-    if (!file) {
-      // Try common alternative field names
-      const alternatives = ['image', 'photo', 'upload', 'fileUpload', 'picture'];
-      file = req.files.find(f => alternatives.includes(f.fieldname)) || req.files[0];
-      
-      if (file && file.fieldname !== 'file') {
-        console.warn(`File received with field name "${file.fieldname}" instead of "file". Please update your frontend to use "file".`);
+// Use Express middleware chain for proper error handling
+router.post('/', 
+  validateMultipartRequest,
+  (req, res, next) => {
+    upload.any()(req, res, (err) => {
+      if (err) {
+        return handleMulterError(err, req, res, next);
       }
-    }
-    
-    if (!file) {
-      return res.status(400).json({
-        success: false,
-        error: 'Upload error',
-        message: 'File received but could not be processed',
-      });
-    }
+      next();
+    });
+  },
+  async (req, res) => {
+    try {
+      // Debug logging to help diagnose upload issues
+      console.log('Upload request received:');
+      console.log('Content-Type:', req.headers['content-type']);
+      console.log('req.files:', req.files ? req.files.map(f => ({ fieldname: f.fieldname, originalname: f.originalname })) : 'missing');
+      console.log('req.body keys:', Object.keys(req.body || {}));
+      console.log('req.body:', req.body);
+      
+      // Check if any file was received
+      if (!req.files || req.files.length === 0) {
+        const receivedFields = Object.keys(req.body || {});
+        const fieldHint = receivedFields.length > 0 
+          ? ` Received fields: ${receivedFields.join(', ')}. Make sure the file is sent with field name "file" (or "image", "photo", "upload").`
+          : ' No form fields received. Make sure you are sending multipart/form-data with Content-Type header.';
+        
+        return res.status(400).json({
+          success: false,
+          error: 'Upload error',
+          message: `No file received; expected field "file".${fieldHint}`,
+          hint: 'Use FormData and append the file with: formData.append("file", fileObject)',
+        });
+      }
 
-    // Extract + normalize fields
-    // file is already defined above
-    const {
-      folder = 'uploads',
-      isPublic: isPublicRaw,
-      entityType: entityTypeRaw = 'general', // 'venues', 'productions', 'users', 'general'
-      entityId: entityIdRaw = null,
-      // New parameters for user image structure
-      category: categoryRaw = null,
-      userId: userIdRaw = null,
-      relatedEntityId: relatedEntityIdRaw = null,
-      fileName: fileNameRaw = null
-    } = req.body;
+      // Get the first file (accept any field name, but prefer 'file')
+      let file = req.files.find(f => f.fieldname === 'file');
+      if (!file) {
+        // Try common alternative field names
+        const alternatives = ['image', 'photo', 'upload', 'fileUpload', 'picture'];
+        file = req.files.find(f => alternatives.includes(f.fieldname)) || req.files[0];
+        
+        if (file && file.fieldname !== 'file') {
+          console.warn(`File received with field name "${file.fieldname}" instead of "file". Please update your frontend to use "file".`);
+        }
+      }
+      
+      if (!file) {
+        return res.status(400).json({
+          success: false,
+          error: 'Upload error',
+          message: 'File received but could not be processed',
+        });
+      }
 
-    const entityType = entityTypeRaw || 'general';
-    const entityId = entityIdRaw || null;
-    const category = categoryRaw || null;
-    const userId = userIdRaw || null;
-    const relatedEntityId = relatedEntityIdRaw || null;
-    const fileName = fileNameRaw || null;
+      // Extract + normalize fields
+      // file is already defined above
+      const {
+        folder = 'uploads',
+        isPublic: isPublicRaw,
+        entityType: entityTypeRaw = 'general', // 'venues', 'productions', 'users', 'general'
+        entityId: entityIdRaw = null,
+        // New parameters for user image structure
+        category: categoryRaw = null,
+        userId: userIdRaw = null,
+        relatedEntityId: relatedEntityIdRaw = null,
+        fileName: fileNameRaw = null
+      } = req.body;
+
+      const entityType = entityTypeRaw || 'general';
+      const entityId = entityIdRaw || null;
+      const category = categoryRaw || null;
+      const userId = userIdRaw || null;
+      const relatedEntityId = relatedEntityIdRaw || null;
+      const fileName = fileNameRaw || null;
 
     // Determine if using new structure
     const usingNewStructure = category && userId;
@@ -736,6 +835,10 @@ router.delete('/:fileId', async (req, res) => {
 
 // Error handling middleware for multer
 router.use((error, req, res, next) => {
+  console.error('Multer/Upload error:', error);
+  console.error('Error code:', error.code);
+  console.error('Error message:', error.message);
+
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
@@ -743,12 +846,27 @@ router.use((error, req, res, next) => {
         error: 'File too large. Maximum size is 10MB.'
       });
     }
+    // Handle other multer errors
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: error.message || `Multer error: ${error.code}`
+    });
   }
 
   if (error.message === 'Invalid file type. Only images, documents, and videos are allowed.') {
     return res.status(400).json({
       success: false,
       error: error.message
+    });
+  }
+
+  // Handle "Unexpected end of form" and other parsing errors
+  if (error.message && error.message.includes('Unexpected end')) {
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: 'The upload request was incomplete. This usually happens when the request is cut off or the file is too large. Please check your network connection and file size, then try again.'
     });
   }
 

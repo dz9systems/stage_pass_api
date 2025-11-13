@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const { VenuesController } = require("../controllers");
-const { uploadPhoto } = require("../utils/uploadPhoto");
 
 // Generate unique ID
 function generateId() {
@@ -19,14 +18,7 @@ router.post("/", async (req, res) => {
       zipCode,
       capacity,
       imageURL,
-      sellerId,
-      // Contact Information
-      contactName,
-      contactEmail,
-      contactPhone,
-      // Additional Information
-      rentalFee,
-      notes
+      sellerId
     } = req.body;
 
     // Validate required fields
@@ -49,13 +41,6 @@ router.post("/", async (req, res) => {
       capacity: capacity || 0,
       imageURL: imageURL || null,
       sellerId,
-      // Contact Information
-      contactName: contactName || null,
-      contactEmail: contactEmail || null,
-      contactPhone: contactPhone || null,
-      // Additional Information
-      rentalFee: rentalFee || null,
-      notes: notes || null,
       createdAt: now,
       updatedAt: now,
       seatmaps: {} // Initialize empty seatmaps subcollection
@@ -192,14 +177,7 @@ router.put("/:venueId", async (req, res) => {
       zipCode,
       capacity,
       imageURL,
-      sellerId,
-      // Contact Information
-      contactName,
-      contactEmail,
-      contactPhone,
-      // Additional Information
-      rentalFee,
-      notes
+      sellerId
     } = req.body;
 
     // Check if venue exists
@@ -221,13 +199,6 @@ router.put("/:venueId", async (req, res) => {
       ...(capacity !== undefined && { capacity }),
       ...(imageURL !== undefined && { imageURL }),
       ...(sellerId !== undefined && { sellerId }),
-      // Contact Information
-      ...(contactName !== undefined && { contactName }),
-      ...(contactEmail !== undefined && { contactEmail }),
-      ...(contactPhone !== undefined && { contactPhone }),
-      // Additional Information
-      ...(rentalFee !== undefined && { rentalFee }),
-      ...(notes !== undefined && { notes }),
       updatedAt: new Date().toISOString()
     };
 
@@ -281,70 +252,6 @@ router.patch("/:venueId", async (req, res) => {
   } catch (error) {
     res.status(500).json({ 
       error: 'Failed to update venue',
-      message: error.message 
-    });
-  }
-});
-
-// UPLOAD - Upload venue image (supports both URI and file upload)
-// Note: For file uploads, use Content-Type: application/json and send uri as data URI or URL
-// For direct file uploads, use the /api/upload endpoint instead
-router.post("/:venueId/image", async (req, res) => {
-  try {
-    const { venueId } = req.params;
-    const { uri, fileName, sellerId, buffer, mimeType } = req.body;
-
-    // Validate required fields
-    if (!uri && !buffer) {
-      return res.status(400).json({ 
-        error: "Either uri or buffer is required" 
-      });
-    }
-
-    if (!sellerId) {
-      return res.status(400).json({ 
-        error: "sellerId is required" 
-      });
-    }
-
-    // Check if venue exists
-    const existingVenue = await VenuesController.getVenueById(venueId);
-    if (!existingVenue) {
-      return res.status(404).json({ 
-        error: 'Venue not found' 
-      });
-    }
-
-    // Generate filename if not provided
-    const imageFileName = fileName || `venue-${venueId}-${Date.now()}.jpg`;
-
-    // Upload photo to Firebase Storage
-    const downloadURL = await uploadPhoto({
-      fileName: imageFileName,
-      uid: sellerId,
-      uri: uri,
-      buffer: buffer ? Buffer.from(buffer, 'base64') : undefined,
-      mimeType: mimeType
-    });
-
-    // Update venue with new image URL
-    const updatedVenue = {
-      ...existingVenue,
-      imageURL: downloadURL,
-      updatedAt: new Date().toISOString()
-    };
-
-    const result = await VenuesController.upsertVenue(updatedVenue);
-
-    res.json({
-      success: true,
-      imageURL: downloadURL,
-      venue: result
-    });
-
-  } catch (error) {
-    res.status(500).json({ 
-      error: 'Failed to upload venue image',
       message: error.message 
     });
   }

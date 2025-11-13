@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 const express = require('express');
 const multer = require('multer');
 const mime = require('mime-types');
@@ -91,27 +90,114 @@ async function ensureBucketExists() {
 // Initialize bucket on startup
 ensureBucketExists();
 
-// POST /api/upload - Upload a single file
-// IMPORTANT: Route is '/' because router is mounted at "/api/upload"
-// Final path = POST /api/upload
-// Field name must be exactly 'file' - FormData.append('file', ...)
-router.post('/', (req, res) => {
-  upload.single('file')(req, res, async (err) => {
-    if (err) {
-      console.error('Multer/Busboy error:', err);
-      return res.status(400).json({
+// Express middleware to validate multipart requests
+function validateMultipartRequest(req, res, next) {
+  const contentType = req.headers['content-type'];
+  
+  // Only validate multipart requests
+  if (!contentType || !contentType.includes('multipart/form-data')) {
+    return next();
+  }
+
+  // Validate Content-Length header exists for multipart requests
+  const contentLength = req.headers['content-length'];
+  if (!contentLength) {
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: 'Content-Length header is required for file uploads'
+    });
+  }
+
+  // Check if Content-Length is within reasonable bounds
+  const length = parseInt(contentLength, 10);
+  if (isNaN(length) || length <= 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: 'Invalid Content-Length header'
+    });
+  }
+
+  // Check if file size exceeds limit (10MB)
+  if (length > 10 * 1024 * 1024) {
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: 'File size exceeds maximum limit of 10MB'
+    });
+  }
+
+  // Set Express timeout for request (30 seconds)
+  req.setTimeout(30000, () => {
+    if (!res.headersSent) {
+      res.status(400).json({
         success: false,
         error: 'Upload error',
-        message: err.message || 'Failed to parse form data',
+        message: 'Request timeout: The upload request took too long'
       });
     }
+  });
+
+  next();
+}
+
+// Express middleware to handle multer errors
+function handleMulterError(err, req, res, next) {
+  if (!err) {
+    return next();
+  }
+
+  console.error('Multer error:', err);
+  
+  // Handle "Unexpected end of form" error
+  if (err.message && (err.message.includes('Unexpected end') || err.message.includes('Unexpected end of form'))) {
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: 'The upload request was incomplete. This usually happens when the request is cut off or the file is too large. Please check your network connection and file size, then try again.'
+    });
+  }
+
+  // Handle multer-specific errors
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        error: 'File too large. Maximum size is 10MB.'
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: err.message || `Multer error: ${err.code}`
+    });
+  }
+
+  // Pass other errors to next error handler
+  return next(err);
+}
+
+// POST /api/upload - Upload a single file
+// Use Express middleware chain for proper error handling
+router.post('/', 
+  validateMultipartRequest,
+  (req, res, next) => {
+    upload.single('file')(req, res, (err) => {
+      if (err) {
+        return handleMulterError(err, req, res, next);
+      }
+      next();
+    });
+  },
+  async (req, res) => {
 
     try {
       if (!req.file) {
         return res.status(400).json({
           success: false,
-          error: 'Upload error',
-          message: 'No file received; expected field "file"',
+          error: 'No file provided',
+          message: 'No file received (field name must be "file")'
         });
       }
 
@@ -712,7 +798,7 @@ router.delete('/:fileId', async (req, res) => {
 });
 
 // Error handling middleware for multer
-router.use((error, req, res, _next) => {
+router.use((error, req, res, next) => {
   console.error('Multer/Upload error:', error);
   console.error('Error code:', error.code);
   console.error('Error message:', error.message);
@@ -744,7 +830,7 @@ router.use((error, req, res, _next) => {
     return res.status(400).json({
       success: false,
       error: 'Upload error',
-      message: 'The upload request was incomplete. Please check your network connection and try again.'
+      message: 'The upload request was incomplete. This usually happens when the request is cut off or the file is too large. Please check your network connection and file size, then try again.'
     });
   }
 
