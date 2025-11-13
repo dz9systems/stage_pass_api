@@ -1,5 +1,4 @@
 const express = require('express');
-const multer = require('multer');
 const mime = require('mime-types');
 const { admin } = require('../firebase');
 const { generateId } = require('../controllers/BaseController');
@@ -53,25 +52,158 @@ function shouldAllowOverwrite(req) {
   return parseBool(req.body.allowOverwrite) || parseBool(req.query.allowOverwrite);
 }
 
-// Configure multer for memory storage
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    // Allow images, documents, and common file types
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mov|avi/;
-    const extname = allowedTypes.test(file.originalname.toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only images, documents, and videos are allowed.'));
-    }
+// Custom multipart/form-data parser (no third-party dependencies)
+function parseMultipartFormData(req, res, next) {
+  const contentType = req.headers['content-type'];
+  
+  // Only parse multipart requests
+  if (!contentType || !contentType.includes('multipart/form-data')) {
+    return next();
   }
-});
+
+  // Extract boundary from Content-Type header
+  const boundaryMatch = contentType.match(/boundary=([^;]+)/);
+  if (!boundaryMatch) {
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: 'Invalid multipart/form-data: missing boundary'
+    });
+  }
+
+  const boundary = '--' + boundaryMatch[1].trim();
+  const CRLF = '\r\n';
+  const maxFileSize = 10 * 1024 * 1024; // 10MB limit
+
+  // Initialize request body and files
+  req.body = {};
+  req.files = [];
+
+  // Collect raw data
+  const chunks = [];
+  let totalSize = 0;
+
+  req.on('data', (chunk) => {
+    totalSize += chunk.length;
+    if (totalSize > maxFileSize) {
+      return res.status(400).json({
+        success: false,
+        error: 'File too large. Maximum size is 10MB.'
+      });
+    }
+    chunks.push(chunk);
+  });
+
+  req.on('end', () => {
+    try {
+      const buffer = Buffer.concat(chunks);
+      const boundaryBuffer = Buffer.from(boundary, 'utf8');
+      const CRLFBuffer = Buffer.from(CRLF, 'utf8');
+      const doubleCRLF = Buffer.from(CRLF + CRLF, 'utf8');
+
+      // Split by boundary using buffer operations
+      const parts = [];
+      let start = 0;
+      while (true) {
+        const boundaryIndex = buffer.indexOf(boundaryBuffer, start);
+        if (boundaryIndex === -1) break;
+        
+        if (boundaryIndex > start) {
+          parts.push(buffer.slice(start, boundaryIndex));
+        }
+        start = boundaryIndex + boundaryBuffer.length;
+      }
+
+      for (let i = 0; i < parts.length; i++) {
+        let part = parts[i];
+        
+        // Skip empty parts and final boundary marker
+        if (part.length === 0 || (part.length === 2 && part.equals(Buffer.from('--', 'utf8')))) {
+          continue;
+        }
+
+        // Remove leading CRLF if present
+        if (part[0] === 0x0D && part[1] === 0x0A) {
+          part = part.slice(2);
+        }
+
+        // Find header/body separator (double CRLF)
+        const headerEndIndex = part.indexOf(doubleCRLF);
+        if (headerEndIndex === -1) continue;
+
+        const headerBuffer = part.slice(0, headerEndIndex);
+        const bodyBuffer = part.slice(headerEndIndex + doubleCRLF.length);
+
+        // Remove trailing CRLF from body if present
+        const trimmedBody = bodyBuffer.length >= 2 && 
+          bodyBuffer[bodyBuffer.length - 2] === 0x0D && 
+          bodyBuffer[bodyBuffer.length - 1] === 0x0A
+          ? bodyBuffer.slice(0, -2)
+          : bodyBuffer;
+
+        // Parse headers as text
+        const headers = headerBuffer.toString('utf8');
+
+        // Parse Content-Disposition header
+        const dispositionMatch = headers.match(/Content-Disposition:\s*form-data;\s*name="([^"]+)"(?:;\s*filename="([^"]*)")?/i);
+        if (!dispositionMatch) continue;
+
+        const fieldName = dispositionMatch[1];
+        const fileName = dispositionMatch[2];
+
+        // Parse Content-Type if present
+        const contentTypeMatch = headers.match(/Content-Type:\s*([^\r\n]+)/i);
+        const partContentType = contentTypeMatch ? contentTypeMatch[1].trim() : 'application/octet-stream';
+
+        if (fileName) {
+          // This is a file upload
+          // Validate file type
+          const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mov|avi/;
+          const extname = allowedTypes.test(fileName.toLowerCase());
+          const mimetype = allowedTypes.test(partContentType);
+
+          if (!mimetype || !extname) {
+            return res.status(400).json({
+              success: false,
+              error: 'Invalid file type. Only images, documents, and videos are allowed.'
+            });
+          }
+
+          // Create file object similar to multer
+          req.files.push({
+            fieldname: fieldName,
+            originalname: fileName,
+            encoding: '7bit',
+            mimetype: partContentType,
+            buffer: trimmedBody,
+            size: trimmedBody.length
+          });
+        } else {
+          // This is a regular form field
+          req.body[fieldName] = trimmedBody.toString('utf8');
+        }
+      }
+
+      next();
+    } catch (error) {
+      console.error('Multipart parsing error:', error);
+      return res.status(400).json({
+        success: false,
+        error: 'Upload error',
+        message: 'Failed to parse multipart/form-data: ' + error.message
+      });
+    }
+  });
+
+  req.on('error', (error) => {
+    console.error('Request stream error:', error);
+    return res.status(400).json({
+      success: false,
+      error: 'Upload error',
+      message: 'Request stream error: ' + error.message
+    });
+  });
+}
 
 // Initialize Firebase Storage
 const bucket = admin.storage().bucket();
@@ -142,13 +274,13 @@ function validateMultipartRequest(req, res, next) {
   next();
 }
 
-// Express middleware to handle multer errors
-function handleMulterError(err, req, res, next) {
+// Express middleware to handle upload errors
+function handleUploadError(err, req, res, next) {
   if (!err) {
     return next();
   }
 
-  console.error('Multer error:', err);
+  console.error('Upload error:', err);
   
   // Handle "Unexpected end of form" error
   if (err.message && (err.message.includes('Unexpected end') || err.message.includes('Unexpected end of form'))) {
@@ -159,18 +291,11 @@ function handleMulterError(err, req, res, next) {
     });
   }
 
-  // Handle multer-specific errors
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        success: false,
-        error: 'File too large. Maximum size is 10MB.'
-      });
-    }
+  // Handle file size errors
+  if (err.message && err.message.includes('too large')) {
     return res.status(400).json({
       success: false,
-      error: 'Upload error',
-      message: err.message || `Multer error: ${err.code}`
+      error: 'File too large. Maximum size is 10MB.'
     });
   }
 
@@ -186,14 +311,7 @@ function handleMulterError(err, req, res, next) {
 // Use Express middleware chain for proper error handling
 router.post('/', 
   validateMultipartRequest,
-  (req, res, next) => {
-    upload.any()(req, res, (err) => {
-      if (err) {
-        return handleMulterError(err, req, res, next);
-      }
-      next();
-    });
-  },
+  parseMultipartFormData,
   async (req, res) => {
     try {
       // Debug logging to help diagnose upload issues
@@ -449,7 +567,10 @@ router.post('/',
 });
 
 // POST /api/upload/multiple - Upload multiple files
-router.post('/multiple', upload.array('files', 10), async (req, res) => {
+router.post('/multiple', 
+  validateMultipartRequest,
+  parseMultipartFormData,
+  async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -833,24 +954,16 @@ router.delete('/:fileId', async (req, res) => {
   }
 });
 
-// Error handling middleware for multer
+// Error handling middleware for uploads
 router.use((error, req, res, next) => {
-  console.error('Multer/Upload error:', error);
+  console.error('Upload error:', error);
   console.error('Error code:', error.code);
   console.error('Error message:', error.message);
 
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        success: false,
-        error: 'File too large. Maximum size is 10MB.'
-      });
-    }
-    // Handle other multer errors
+  if (error.message && error.message.includes('too large')) {
     return res.status(400).json({
       success: false,
-      error: 'Upload error',
-      message: error.message || `Multer error: ${error.code}`
+      error: 'File too large. Maximum size is 10MB.'
     });
   }
 

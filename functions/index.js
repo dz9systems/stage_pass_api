@@ -4,7 +4,6 @@ require("dotenv").config();
 const { onRequest } = require("firebase-functions/v2/https");
 const express = require("express");
 const cors = require("cors");
-const bodyParser = require("body-parser"); // use raw for webhooks, json for everything else
 
 // Each of these files should `module.exports = router`
 const connectExpressRouter = require("./routes/connectExpress.js");
@@ -55,9 +54,9 @@ app.use("/api/upload", uploadRouter);
 // Explicit OPTIONS handler for CORS preflight on upload route
 app.options("/api/upload", cors(corsOptions));
 
-// JSON for everything else (with size limit to prevent interference)
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+// Body parsing middleware
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Feature routers
 app.use("/connect/express", connectExpressRouter);
