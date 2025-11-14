@@ -298,18 +298,18 @@ router.patch("/:venueId", async (req, res) => {
   }
 });
 
-// UPLOAD - Upload venue image (supports both URI and file upload)
+// UPLOAD - Upload venue image (supports URI)
 // Note: For file uploads, use Content-Type: application/json and send uri as data URI or URL
-// For direct file uploads, use the /api/upload endpoint instead
+// For direct file uploads, use the /api/uploadPhoto endpoint instead
 router.post("/:venueId/image", async (req, res) => {
   try {
     const { venueId } = req.params;
-    const { uri, fileName, sellerId, buffer, mimeType } = req.body;
+    const { uri, fileName, sellerId } = req.body;
 
     // Validate required fields
-    if (!uri && !buffer) {
+    if (!uri) {
       return res.status(400).json({ 
-        error: "Either uri or buffer is required" 
+        error: "uri is required" 
       });
     }
 
@@ -334,9 +334,7 @@ router.post("/:venueId/image", async (req, res) => {
     const downloadURL = await uploadPhoto({
       fileName: imageFileName,
       uid: sellerId,
-      uri: uri,
-      buffer: buffer ? Buffer.from(buffer, 'base64') : undefined,
-      mimeType: mimeType
+      uri: uri
     });
 
     // Update venue with new image URL

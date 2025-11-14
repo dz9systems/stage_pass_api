@@ -17,13 +17,16 @@ const venuesRouter = require("./routes/venues");
 const seatmapsRouter = require("./routes/seatmaps");
 const ordersRouter = require("./routes/orders");
 const ticketsRouter = require("./routes/tickets");
-const uploadRouter = require("./routes/upload");
+const uploadPhotoRouter = require("./routes/uploadPhoto");
 const subscriptionsRouter = require("./routes/subscriptions");
 const emailsRouter = require("./routes/emails");
 
 const app = express();
 const port = process.env.PORT || 4242;
 const path = require("path");
+
+// Enable trust proxy for Cloud Run
+app.enable('trust proxy');
 
 // CORS
 const corsOptions = {
@@ -45,14 +48,12 @@ app.get("/get-token", (req, res) => {
 // --- Webhooks MUST be mounted before JSON parsing ---
 app.use("/webhooks", express.raw({ type: "application/json" }), webhooksRouter);
 
-// Upload route MUST be before JSON parser (multer needs to parse multipart/form-data)
-// IMPORTANT: No body parsing middleware should be applied before this route
-app.use("/api/upload", uploadRouter);
-
 // Body parsing middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Photo upload endpoint - simple path
+app.use("/api/uploadPhoto", uploadPhotoRouter);
 
 // Feature routers
 app.use("/connect/express", connectExpressRouter);
@@ -71,6 +72,11 @@ app.use("/api/orders", ordersRouter);
 app.use("/api/orders", ticketsRouter); // tickets are subcollection of orders
 app.use("/api/subscriptions", subscriptionsRouter);
 app.use("/api/emails", emailsRouter);
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
 // Start server - listen on all interfaces (IPv4 and IPv6)
 // This ensures both localhost (IPv6 ::1) and 127.0.0.1 (IPv4) work

@@ -1,61 +1,36 @@
-const { initializeApp } = require('firebase/app');
-const { getStorage, ref, uploadBytesResumable, getDownloadURL } = require('firebase/storage');
+const { admin } = require('../firebase');
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: 'AIzaSyAlEj1egHnEn_Kr15Vi3OTwefghhPod3jU',
-  authDomain: 'stage-pass-b1d9b.firebaseapp.com',
-  projectId: 'stage-pass-b1d9b',
-  storageBucket: 'stage-pass-b1d9b.firebasestorage.app',
-  messagingSenderId: '55719597935',
-  appId: '1:55719597935:web:acb9ad699bb5ad2547ba9a',
-  measurementId: 'G-M2BLZYWPJE'
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-/**
- * Upload photo to Firebase Storage
- * @param {Object} params - Upload parameters
- * @param {string} params.fileName - Name of the file to save
- * @param {string} params.uid - User ID for organizing files
- * @param {string} [params.uri] - URI of the image to upload (can be URL, data URI, or file path)
- * @param {Buffer|Blob} [params.buffer] - Buffer or Blob of the file to upload (alternative to uri)
- * @param {string} [params.mimeType] - MIME type of the file (required if using buffer)
- * @returns {Promise<string>} Download URL of the uploaded file
- */
-const uploadPhoto = async ({ fileName, uid, uri, buffer, mimeType }) => {
+// UPLOAD PHOTO TO FIREBASE STORAGE
+const uploadPhoto = async ({ fileName, uid, uri }) => {
   try {
-    // GET THE STORAGE REFERENCE
-    const storage = getStorage();
+    // GET THE STORAGE BUCKET
+    const bucket = admin.storage().bucket();
 
     // GENERATE A REFERENCE TO A LOCATION ASSOCIATED WITH THE USER
-    const storageRef = ref(storage, `users/${uid}/${fileName}`);
+    const filePath = `users/${uid}/${fileName}`;
+    const file = bucket.file(filePath);
 
-    let blob;
+    // FETCH THE PHOTO DATA FROM THE PROVIDED URI
+    const response = await fetch(uri);
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    // HANDLE BUFFER/BLOB DIRECTLY OR FETCH FROM URI
-    if (buffer) {
-      // If buffer is provided, convert to Blob
-      if (Buffer.isBuffer(buffer)) {
-        blob = new Blob([buffer], { type: mimeType || 'image/jpeg' });
-      } else {
-        blob = buffer; // Already a Blob
-      }
-    } else if (uri) {
-      // FETCH THE PHOTO DATA FROM THE PROVIDED URI
-      const response = await fetch(uri);
-      blob = await response.blob();
-    } else {
-      throw new Error('Either uri or buffer must be provided');
-    }
+    // DETERMINE CONTENT TYPE FROM RESPONSE OR FILE EXTENSION
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
 
     // UPLOAD THE FILE TO THE STORAGE BUCKET
-    const uploadTask = await uploadBytesResumable(storageRef, blob);
+    await file.save(buffer, {
+      metadata: {
+        contentType: contentType,
+        cacheControl: 'public, max-age=31536000',
+      },
+    });
 
-    // GET DOWNLOAD URL
-    const downloadURL = await getDownloadURL(uploadTask.ref);
+    // MAKE FILE PUBLIC
+    await file.makePublic();
+
+    // GET DOWNLOAD URL (PUBLIC URL)
+    const downloadURL = `https://storage.googleapis.com/${bucket.name}/${encodeURI(filePath)}`;
 
     // RETURN THE DOWNLOAD URL
     return downloadURL;

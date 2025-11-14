@@ -88,7 +88,7 @@ router.get("/", async (req, res) => {
     } = req.query;
 
     const productions = await ProductionsController.getAllProductions({ sellerId, status, category });
-   
+
     // Apply pagination
     const startIndex = parseInt(offset);
     const endIndex = startIndex + parseInt(limit);
@@ -113,33 +113,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// READ - Get production by ID
-router.get("/:productionId", async (req, res) => {
-  try {
-    const { productionId } = req.params;
-
-    const production = await ProductionsController.getProductionById(productionId);
-
-    if (!production) {
-      return res.status(404).json({
-        error: 'Production not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      production
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      error: 'Failed to retrieve production',
-      message: error.message
-    });
-  }
-});
-
-// READ - Get productions by seller ID
+// READ - Get productions by seller ID (must be before /:productionId route)
 router.get("/seller/:sellerId", async (req, res) => {
   try {
     const { sellerId } = req.params;
@@ -167,6 +141,32 @@ router.get("/seller/:sellerId", async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: 'Failed to retrieve seller productions',
+      message: error.message
+    });
+  }
+});
+
+// READ - Get production by ID
+router.get("/:productionId", async (req, res) => {
+  try {
+    const { productionId } = req.params;
+
+    const production = await ProductionsController.getProductionById(productionId);
+
+    if (!production) {
+      return res.status(404).json({
+        error: 'Production not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      production
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to retrieve production',
       message: error.message
     });
   }

@@ -20,7 +20,7 @@ const venuesRouter = require("./routes/venues");
 const seatmapsRouter = require("./routes/seatmaps");
 const ordersRouter = require("./routes/orders");
 const ticketsRouter = require("./routes/tickets");
-const uploadRouter = require("./routes/upload");
+const uploadPhotoRouter = require("./routes/uploadPhoto");
 const subscriptionsRouter = require("./routes/subscriptions");
 const emailsRouter = require("./routes/emails");
 // Load Firestore triggers
@@ -34,7 +34,7 @@ app.enable('trust proxy');
 
 // CORS
 const corsOptions = {
-  origin: ["http://localhost:5173","http://127.0.0.1:5173","https://www.stagepasspro.com","https://stage-pass-b1d9b.web.app","https://project-theatre-ticketing-system-with-crm-integration-440.magicpatterns.app"],
+  origin: ["http://localhost:5173","http://127.0.0.1:5173","http://localhost:4242","http://127.0.0.1:4242","https://www.stagepasspro.com","https://stage-pass-b1d9b.web.app","https://project-theatre-ticketing-system-with-crm-integration-440.magicpatterns.app"],
   credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"],
@@ -45,18 +45,20 @@ app.use(cors(corsOptions));
 // Path goes up one level from functions/ to access root assets/ folder
 app.use("/assets", express.static(path.join(__dirname, "..", "assets")));
 
+// Serve the token helper page
+app.get("/get-token", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "get-token.html"));
+});
+
 // --- Webhooks MUST be mounted before JSON parsing ---
 app.use("/webhooks", express.raw({ type: "application/json" }), webhooksRouter);
-
-// Upload route MUST be before JSON parser (multer needs to parse multipart/form-data)
-app.use("/api/upload", uploadRouter);
-
-// Explicit OPTIONS handler for CORS preflight on upload route
-app.options("/api/upload", cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Photo upload endpoint - simple path
+app.use("/api/uploadPhoto", uploadPhotoRouter);
 
 // Feature routers
 app.use("/connect/express", connectExpressRouter);
