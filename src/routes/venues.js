@@ -330,11 +330,13 @@ router.post("/:venueId/image", async (req, res) => {
     // Generate filename if not provided
     const imageFileName = fileName || `venue-${venueId}-${Date.now()}.jpg`;
 
-    // Upload photo to Firebase Storage
+    // Upload photo to Firebase Storage with venue_images category
     const downloadURL = await uploadPhoto({
       fileName: imageFileName,
       uid: sellerId,
-      uri: uri
+      uri: uri,
+      category: 'venue_images',
+      relatedEntityId: venueId
     });
 
     // Update venue with new image URL

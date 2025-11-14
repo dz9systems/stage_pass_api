@@ -4,7 +4,8 @@ service firebase.storage {
     // NEW STRUCTURE: User-specific image storage
     // users/{userId}/venue_images/{venueId}/{fileName}
     // users/{userId}/production_images/{productionId}/{fileName}
-    // users/{userId}/settings_images/avatar.{ext}
+    // users/{userId}/settings_images/{fileName}
+    // users/{userId}/seatmap_images/{venueId}/{fileName}
     match /users/{userId}/{allPaths=**} {
       // Public read for all user images
       allow read: if true;
